@@ -411,13 +411,27 @@ ENTITY mem_st_machine_controller is
             	if ( (app_rdy_i = '0' ) or
             		   (app_wdf_rdy_i = '0' )  ) then
             		 ns_controller <= state_stall_rd_1d_fwd_av_col;
-              elsif(state_counter_5_r >= FFT_IMAGE_SIZE ) -- complete one FFT read
-              	 ns_controller <= state_wait_for_fft;
+              --elsif(state_counter_5_r >= FFT_IMAGE_SIZE ) -- complete one FFT read
+              --	 ns_controller <= state_wait_for_fft;  -- ??? incorrect
               elsif(state_counter_6_r >= IMAGE256X256 ) -- complete image
               	ns_controller <=  state_DEBUG_STOP;
               else
               	ns_controller <=  state_rd_1d_fwd_av_col;	
               end
+              
+            -- Stall States
+            
+            when state_stall_wr_1d_fwd_av_row => 
+            	
+            	decoder_st_d <= "100100" -- Stall wr 1d fwd av
+            	
+            	if ( (app_rdy_i = '1' ) or
+            		   (app_wdf_rdy_i = '1' )  ) then
+            		 ns_controller <= state_wr_1d_fwd_av_row ;
+              else
+              	ns_controller <=  state_stall_wr_1d_fwd_av_row;	
+              end
+            
               
             when state_DEBUG_STOP => 
             	
@@ -713,7 +727,6 @@ ENTITY mem_st_machine_controller is
       begin
        if( rst_i = '1') then
 
-        clear_state_counter_1_r         <= '1';
               
         -- app interface to ddr controller
         app_cmd_r         <=          '000'; --: out std_logic_vector(2 downto 0);
@@ -752,6 +765,7 @@ ENTITY mem_st_machine_controller is
         decoder_st_r                <= "000001"; -- init state
         			
        elsif(clk_i'event and clk_i = '1') then
+       	
             	
         -- app interface to ddr controller
         app_cmd_r         <=          app_cmd_d;        --: out std_logic_vector(2 downto 0);
@@ -861,29 +875,170 @@ ENTITY mem_st_machine_controller is
   		when "000001" => -- INIT state
   			
   			-- Counter control for completion of B writes
-  			clear_state_counter_1_d   <= '0';
-  			enable_state_counter_1_d  <= '0'; 	
+  			clear_state_counter_1_d   <= '0'; --NOP counter 1
+  			enable_state_counter_1_d  <= '0'; 
+  			
+  		 -- Counter control for completion of 1-D fwd av row writes
+  			clear_state_counter_3_d   <= '1';
+  			enable_state_counter_3_d  <= '0'; 
+  			
+  		 -- Counter control for completion of 1-D fwd av image-row writes
+  			clear_state_counter_4_d   <= '1';
+  			enable_state_counter_4_d  <= '0';	
+  			
+  		 -- Counter control for completion of 1-D fwd av col reads
+  			clear_state_counter_5_d   <= '1';
+  			enable_state_counter_5_d  <= '0'; 
+  			
+  		 -- Counter control for completion of 1-D fwd av image-col reads
+  			clear_state_counter_6_d   <= '1';
+  			enable_state_counter_6_d  <= '0';	
+  		
   			
   			
   	  when "000010" => -- Write in B
   			
 
   			clear_state_counter_1_d   <= '0';
-  			enable_state_counter_1_d  <= '1'; 
+  			enable_state_counter_1_d  <= '1'; -- enable counter 1
+  			
+  			clear_state_counter_3_d   <= '1';
+  			enable_state_counter_3_d  <= '0'; 
+  			
+  			clear_state_counter_4_d   <= '1';
+  			enable_state_counter_4_d  <= '0';
+  			
+  			clear_state_counter_5_d   <= '1';
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '1';
+  			enable_state_counter_6_d  <= '0';	
   			
   		
   		when "000011" =>  -- Wait for FFT
   			
-  			clear_state_counter_1_d   <= '1';
-  			enable_state_counter_1_d  <= '0'; 
+  			clear_state_counter_1_d   <= '1'; --clear counter 1
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '1'; --clear counter 3
+  			enable_state_counter_3_d  <= '0';
+  			
+  			clear_state_counter_4_d   <= '0'; -- NOP counter 4
+  			enable_state_counter_4_d  <= '0'; 			
+  			  			
+  			clear_state_counter_5_d   <= '1';
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '1';
+  			enable_state_counter_6_d  <= '0';	
   			
   		when "000100" => -- write 1-D FWD AV Row
   			
+  			clear_state_counter_1_d   <= '1';
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '0';
+  			enable_state_counter_3_d  <= '1'; --enable counter 3
+  			
+  			  			
+  			clear_state_counter_4_d   <= '0';
+  			enable_state_counter_4_d  <= '1'; --enable counter 4
+  			
+  			clear_state_counter_5_d   <= '1';
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '1';
+  			enable_state_counter_6_d  <= '0';	
+  			
   			
   	  when "000101" => -- read 1-D FWD AV col
+  	  	
+  	  	clear_state_counter_1_d   <= '1';
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '1';
+  			enable_state_counter_3_d  <= '0';
+  			
+  			clear_state_counter_4_d   <= '1';
+  			enable_state_counter_4_d  <= '0';
+  			
+  			clear_state_counter_5_d   <= '1';  --clear counter 5
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '0';
+  			enable_state_counter_6_d  <= '1';	--enable counter 6
+  	  	
+  	  	
+  	  when "011111" => -- state debug stop
+  	  	
+  	  	clear_state_counter_1_d   <= '1';
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '1';
+  			enable_state_counter_3_d  <= '0';
+  			
+  			clear_state_counter_4_d   <= '1';
+  			enable_state_counter_4_d  <= '0';
+  			
+  			clear_state_counter_5_d   <= '1'; 
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '1';
+  			enable_state_counter_6_d  <= '0';	
+  			
+  	  -- Stall States
+  	  when "100100" =>  -- Stall  Write in 1-D FWD AV Row ( Step 0)  -- Start of A Calculation --
+      	                -- Stall  Write in 2-D FWD AV Col ( Step 2)
+  	  	
+  	  	clear_state_counter_1_d   <= '1';
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '0'; -- NOP counter 3
+  			enable_state_counter_3_d  <= '0';
+  			
+  			clear_state_counter_4_d   <= '0'; -- NOP counter 4
+  			enable_state_counter_4_d  <= '0';
+  			
+  			clear_state_counter_5_d   <= '1'; 
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '1';
+  			enable_state_counter_6_d  <= '0';	
+  			
+  		 when "100101" => -- Stall   Read out 1-D FWD AV Col ( Step 1)
+  		 	
+  		 	clear_state_counter_1_d   <= '1';
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '1';
+  			enable_state_counter_3_d  <= '0';
+  			
+  			clear_state_counter_4_d   <= '1'; 
+  			enable_state_counter_4_d  <= '0';
+  			
+  			clear_state_counter_5_d   <= '1'; 
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '0';  -- NOP counter 6
+  			enable_state_counter_6_d  <= '0';	
+  	  
   		
   		when others =>
   			 ---??? Need to add
+  			clear_state_counter_1_d   <= '1';
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '1';
+  			enable_state_counter_3_d  <= '0';
+  			
+  			clear_state_counter_4_d   <= '1';
+  			enable_state_counter_4_d  <= '0';
+  			 			  			
+  			clear_state_counter_5_d   <= '1'; 
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '1'; 
+  			enable_state_counter_6_d  <= '0';	
   			 
   	end case;
   end process st_mach_controller_counters_decoder;
