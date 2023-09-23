@@ -287,8 +287,34 @@ ENTITY mem_st_machine_controller is
   signal bank_addr_r                 : std_logic_vector(3 downto 0);
   signal pipe1_addr_r                : std_logic_vector(15 downto 0);  
   signal pipe2_addr_r                : std_logic_vector(15 downto 0);
-  signal app_addr_r                  : std_logic_vector(19 downto 0);   
+  signal app_addr_r                  : std_logic_vector(19 downto 0); 
+  	
+  --extend FFt wait  
+  signal extend_fft_flow_tlast_d     : std_logic;
+  signal extend_fft_flow_tlast_r     : std_logic;
   
+  -- counters
+  signal state_counter_1_r           : integer;
+  signal state_counter_2_r           : integer;
+  signal state_counter_3_r           : integer;
+  signal state_counter_4_r           : integer;
+  signal state_counter_5_r           : integer;
+  signal state_counter_6_r           : integer;
+  
+  signal clear_state_counter_1_d     : std_logic; 
+  signal clear_state_counter_1_r     : std_logic;
+  signal clear_state_counter_2_d     : std_logic; 
+  signal clear_state_counter_2_r     : std_logic;
+  signal clear_state_counter_3_d     : std_logic; 
+  signal clear_state_counter_3_r     : std_logic;
+  signal clear_state_counter_4_d     : std_logic; 
+  signal clear_state_counter_4_r     : std_logic;
+  signal clear_state_counter_5_d     : std_logic; 
+  signal clear_state_counter_5_r     : std_logic;
+  signal clear_state_counter_6_d     : std_logic; 
+  signal clear_state_counter_6_r     : std_logic;
+   
+   
   -- States
   
   type st_controller_t is (
@@ -1056,11 +1082,46 @@ ENTITY mem_st_machine_controller is
               clear_state_counter_1_r         <= '1';
               enable_state_counter_1_r        <= '0';
               
+              clear_state_counter_2_r         <= '1';
+              enable_state_counter_2_r        <= '0';                     
+              
+              clear_state_counter_3_r         <= '1';
+              enable_state_counter_3_r        <= '0';
+              
+              clear_state_counter_4_r         <= '1';
+              enable_state_counter_4_r        <= '0';            
+                            
+              clear_state_counter_5_r         <= '1';
+              enable_state_counter_5_r        <= '0';
+              
+              clear_state_counter_6_r         <= '1';
+              enable_state_counter_6_r        <= '0';
+              
       	    elsif(clk_i'event and clk_i = '1') then
       	    	
       	    	-- Complete B writes
       	    	clear_state_counter_1_r         <= clear_state_counter_1_d;
               enable_state_counter_1_r        <= enable_state_counter_1_d;
+              
+              -- Extend fft_flow_tlast_i; To allow trans. st. wait_fft to st. write
+              clear_state_counter_2_r         <= clear_state_counter_2_d;
+              enable_state_counter_2_r        <= enable_state_counter_2_d;
+              
+              -- Counter control for completion of 1-D fwd av row writes
+              clear_state_counter_3_r         <= clear_state_counter_3_d;
+              enable_state_counter_3_r        <= enable_state_counter_3_d;
+              
+              -- Counter control for completion of 1-D fwd av image-row writes
+              clear_state_counter_4_r         <= clear_state_counter_4_d;
+              enable_state_counter_4_r        <= enable_state_counter_4_d;
+              
+              -- Counter control for completion of 1-D fwd av col reads
+              clear_state_counter_5_r         <= clear_state_counter_5_d;
+              enable_state_counter_5_r        <= enable_state_counter_5_d;
+              
+              -- Counter control for completion of 1-D fwd av image-col reads
+              clear_state_counter_6_r         <= clear_state_counter_6_d;
+              enable_state_counter_6_r        <= enable_state_counter_6_d;
       	    	
       	    end if;
       	    	
@@ -1168,7 +1229,7 @@ ENTITY mem_st_machine_controller is
   	  end if;
   end process decoder_st_r_del;
   
-  pulse_d <= not(decoder_st_rr) and decoder_st_r; -- detect rising edge
+  pulse_d <= not(decoder_st_rr(0)) and decoder_st_r(0); -- detect rising edge
   	
   pulse_reg : process(clk_i, rst_i)
   	begin
@@ -1179,7 +1240,11 @@ ENTITY mem_st_machine_controller is
   	  end if;
   end process pulse_reg;	
   	
-  mem_init_start_d <= pulse_r and not(decoder_st_r(5 downto 2 )) and decoder_st_r(1); -- state transition
+  mem_init_start_d <= pulse_r and not(decoder_st_r(5 downto 2 )) and decoder_st_r(1); -- state transition:
+  	                                                                                  -- fr 
+  	                                                                                  -- state_write_in_b
+  	                                                                                  -- to
+  	                                                                                  -- state_wait_for_fft
   			
   mem_init_start_reg : process(clk_i, rst_i)
   	begin
@@ -1206,7 +1271,7 @@ ENTITY mem_st_machine_controller is
   
   extend_fft_flow_last_proc : process(state_counter_2_r)
     begin
-    	if (state_counter <= 64) then
+    	if (state_counter_2_r <= 64) then
     		extend_fft_flow_tlast_d <= '1';
     	else
     		extend_fft_flow_tlast_d <= '0';
