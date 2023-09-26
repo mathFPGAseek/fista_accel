@@ -172,6 +172,8 @@ begin
     	                                              
     );
     
+    assign  app_wdf_data_o <= (others=>'0');       --: out std_logic_vector(511 downto 0);
+    
     -----------------------------------------
     --  init_and_inbound flow
     -----------------------------------------	

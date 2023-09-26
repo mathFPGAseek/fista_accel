@@ -147,7 +147,7 @@ module example_tb #(
   
   //**** Signals for FISTA Acceleration*******
    
-  input                       dbg_master_mode_i,
+  input [4:0]                 dbg_master_mode_i,
                
   input                       dbg_rdy_fr_init_and_inbound_i,
    
@@ -159,19 +159,19 @@ module example_tb #(
   
                         
                               //mux control to ddr memory controller          
-  output                      dbg_ddr_intf_mux_wr_sel_o,
+  output [1:0]                dbg_ddr_intf_mux_wr_sel_o,
          
-  output                      dbg_ddr_intf_demux_rd_sel_o,
+  output [2:0]                dbg_ddr_intf_demux_rd_sel_o,
        
   output                      dbg_mem_shared_in_enb_o,
            
-  output                      dbg_mem_shared_in_addb_o,
+  output [7:0]                dbg_mem_shared_in_addb_o,
           
                                                  
                               //mux control to front and Backend
   output                      dbg_front_end_demux_fr_fista_o,
     
-  output                      dbg_front_end_mux_to_fft_o,
+  output [1:0]                dbg_front_end_mux_to_fft_o,
           
   output                      dbg_back_end_demux_fr_fh_mem_o,
     

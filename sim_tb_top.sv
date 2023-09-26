@@ -79,6 +79,8 @@ inout in1;
 endmodule
 `endif
 
+`define USE_FISTA_ACCEL
+
 module sim_tb_top;
 
   localparam ADDR_WIDTH                    = 17;
@@ -157,9 +159,36 @@ module sim_tb_top;
   reg  [31:0] cmdName;
   bit  en_model;
   tri        model_enable = en_model;
-
-
-
+  
+  // FISTA signals
+  reg  [4:0]           dbg_master_mode_i;                
+  reg                  dbg_rdy_fr_init_and_inbound_i;    
+  reg                  dbg_wait_fr_init_and_inbound_i;   
+  reg                  dbg_fft_flow_tlast_i;             
+  wire                 dbg_mem_init_start_o;             
+  wire  [1:0]          dbg_ddr_intf_mux_wr_sel_o;        
+  wire  [2:0]          dbg_ddr_intf_demux_rd_sel_o;      
+  wire                 dbg_mem_shared_in_enb_o;          
+  wire  [7:0]          dbg_mem_shared_in_addb_o;         
+  wire                 dbg_front_end_demux_fr_fista_o;   
+  wire  [1:0]          dbg_front_end_mux_to_fft_o;       
+  wire                 dbg_back_end_demux_fr_fh_mem_o;   
+  wire                 dbg_back_end_demux_fr_fv_mem_o;   
+  wire                 dbg_back_end_mux_to_front_end_o;  
+  wire                 dbg_f_h_fifo_wr_en_o;             
+  wire                 dbg_f_h_fifo_rd_en_o;             
+  reg                  dbg_f_h_fifo_full_i;              
+  reg                  dbg_f_h_fifo_empty_i;             
+  wire                 dbg_f_h_fifo_wr_en_o;             
+  wire                 dbg_f_h_fifo_rd_en_o;             
+  reg                  dbg_f_h_fifo_full_i;              
+  reg                  dbg_f_h_fifo_empty_i;             
+  wire                 dbg_fdbk_fifo_wr_en_o;            
+  wire                 dbg_fdbk_fifo_rd_en_o;            
+  reg                  dbg_fdbk_fifo_full_i;             
+  reg                  dbg_fdbk_fifo_empty_i;            
+  wire                 fista_accel_valid_rd_o;                          
+  
   //**************************************************************************//
   // Reset Generation
   //**************************************************************************//
@@ -375,10 +404,79 @@ ddr4_0 u_ddr4_0
      .c0_ddr4_dm_dbi_n       (c0_ddr4_dm_dbi_n),
      .c0_ddr4_dq             (c0_ddr4_dq),
      .c0_ddr4_dqs_c          (c0_ddr4_dqs_c),
-     .c0_ddr4_dqs_t          (c0_ddr4_dqs_t)
+     .c0_ddr4_dqs_t          (c0_ddr4_dqs_t),
+                         
+    //**** Signals for FISTA Acceleration*******
+    `ifdef USE_FISTA_ACCEL
+     .dbg_master_mode_i                 (dbg_master_mode_i),                      
+     .dbg_rdy_fr_init_and_inbound_i     (dbg_rdy_fr_init_and_inbound_i),          
+     .dbg_wait_fr_init_and_inbound_i    (dbg_wait_fr_init_and_inbound_i),         
+     .dbg_fft_flow_tlast_i              (dbg_fft_flow_tlast_i),                   
+     .dbg_mem_init_start_o              (dbg_mem_init_start_o),                   
+     .dbg_ddr_intf_mux_wr_sel_o         (dbg_ddr_intf_mux_wr_sel_o),              
+     .dbg_ddr_intf_demux_rd_sel_o       (dbg_ddr_intf_demux_rd_sel_o),            
+     .dbg_mem_shared_in_enb_o           (dbg_mem_shared_in_enb_o),                
+     .dbg_mem_shared_in_addb_o          (dbg_mem_shared_in_addb_o),                            
+     .dbg_front_end_demux_fr_fista_o    (dbg_front_end_demux_fr_fista_o),         
+     .dbg_front_end_mux_to_fft_o        (dbg_front_end_mux_to_fft_o),             
+     .dbg_back_end_demux_fr_fh_mem_o    (dbg_back_end_demux_fr_fh_mem_o),         
+     .dbg_back_end_demux_fr_fv_mem_o    (dbg_back_end_demux_fr_fv_mem_o),         
+     .dbg_back_end_mux_to_front_end_o   (dbg_back_end_mux_to_front_end_o),                                
+     .dbg_f_h_fifo_wr_en_o              (dbg_f_h_fifo_wr_en_o),                   
+     .dbg_f_h_fifo_rd_en_o              (dbg_f_h_fifo_rd_en_o),                   
+     .dbg_f_h_fifo_full_i               (dbg_f_h_fifo_full_i),                    
+     .dbg_f_h_fifo_empty_i              (dbg_f_h_fifo_empty_i),                   
+     .dbg_f_h_fifo_wr_en_o              (dbg_f_h_fifo_wr_en_o),                   
+     .dbg_f_h_fifo_rd_en_o              (dbg_f_h_fifo_rd_en_o),                   
+     .dbg_f_h_fifo_full_i               (dbg_f_h_fifo_full_i),                    
+     .dbg_f_h_fifo_empty_i              (dbg_f_h_fifo_empty_i),                                              
+     .dbg_fdbk_fifo_wr_en_o             (dbg_fdbk_fifo_wr_en_o),                  
+     .dbg_fdbk_fifo_rd_en_o             (dbg_fdbk_fifo_rd_en_o),                  
+     .dbg_fdbk_fifo_full_i              (dbg_fdbk_fifo_full_i),                   
+     .dbg_fdbk_fifo_empty_i             (dbg_fdbk_fifo_empty_i),                                   
+     .fista_accel_valid_rd_o            (fista_accel_valid_rd_o) 
+    `endif   
      );
 
-   `endif
+`endif
+
+  //**************************************************************************//
+  // FISTA Acceleration Generation
+  //**************************************************************************//
+`ifdef USE_FISTA_ACCEL
+   //master_mode_i:
+   // Bit 4: unused
+   // Bit 3: A=0/AH=1
+   // Bit 2: 1D=0/2D=1
+   // Bit 1: FWD=0/INV=1
+   // Bit 0: WR=0/RD=1
+  initial 
+    dbg_master_mode_i = 5'b00000;
+    
+  initial
+    dbg_fft_flow_tlast_i = 1'b0;
+     
+  initial begin
+    dbg_rdy_fr_init_and_inbound_i   = 1'b0;
+    dbg_wait_fr_init_and_inbound_i  = 1'b1;
+    #100
+    dbg_rdy_fr_init_and_inbound_i   = 1'b1;
+    dbg_wait_fr_init_and_inbound_i  = 1'b0;
+    
+  end
+  
+  initial begin
+    dbg_f_h_fifo_full_i   = 1'b0;
+    dbg_f_h_fifo_empty_i  = 1'b0;
+    
+    dbg_f_h_fifo_full_i   = 1'b0;
+    dbg_f_h_fifo_empty_i  = 1'b0;
+    
+    dbg_fdbk_fifo_full_i  = 1'b0;
+    dbg_fdbk_fifo_empty_i = 1'b0;
+  end
+  
+`endif 
 
   reg [ADDR_WIDTH-1:0] DDR4_ADRMOD[RANK_WIDTH-1:0];
 

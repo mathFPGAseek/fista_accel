@@ -139,7 +139,36 @@ module example_top #
     inout  [7:0]            c0_ddr4_dm_dbi_n,
     inout  [63:0]            c0_ddr4_dq,
     inout  [7:0]            c0_ddr4_dqs_t,
-    inout  [7:0]            c0_ddr4_dqs_c
+    inout  [7:0]            c0_ddr4_dqs_c,
+                
+    //**** Signals for FISTA Acceleration*******
+    input  [4:0]           dbg_master_mode_i,                      
+    input                  dbg_rdy_fr_init_and_inbound_i,          
+    input                  dbg_wait_fr_init_and_inbound_i,         
+    input                  dbg_fft_flow_tlast_i,                   
+    output                 dbg_mem_init_start_o,                   
+    output [1:0]           dbg_ddr_intf_mux_wr_sel_o,              
+    output [2:0]           dbg_ddr_intf_demux_rd_sel_o,            
+    output                 dbg_mem_shared_in_enb_o,                
+    output [7:0]           dbg_mem_shared_in_addb_o,                            
+    output                 dbg_front_end_demux_fr_fista_o,         
+    output [1:0]           dbg_front_end_mux_to_fft_o,             
+    output                 dbg_back_end_demux_fr_fh_mem_o,         
+    output                 dbg_back_end_demux_fr_fv_mem_o,         
+    output                 dbg_back_end_mux_to_front_end_o,                                
+    output                 dbg_f_h_fifo_wr_en_o,                   
+    output                 dbg_f_h_fifo_rd_en_o,                   
+    input                  dbg_f_h_fifo_full_i,                    
+    input                  dbg_f_h_fifo_empty_i,                   
+    output                 dbg_f_h_fifo_wr_en_o,                   
+    output                 dbg_f_h_fifo_rd_en_o,                   
+    input                  dbg_f_h_fifo_full_i,                    
+    input                  dbg_f_h_fifo_empty_i,                                              
+    output                 dbg_fdbk_fifo_wr_en_o,                  
+    output                 dbg_fdbk_fifo_rd_en_o,                  
+    input                  dbg_fdbk_fifo_full_i,                   
+    input                  dbg_fdbk_fifo_empty_i,                                   
+    output                 fista_accel_valid_rd_o                 
     );
 
 
@@ -547,7 +576,37 @@ ddr4_0 u_ddr4_0
          .app_wdf_data                            (c0_ddr4_app_wdf_data),
          .compare_error                           (c0_data_compare_error),
          .wr_rd_complete                          (c0_wr_rd_complete),
-                              
+        
+          //**** Signals for FISTA Acceleration*******
+         .dbg_master_mode_i                       (dbg_master_mode_i),
+         .dbg_rdy_fr_init_and_inbound_i           (dbg_rdy_fr_init_and_inbound_i),
+         .dbg_wait_fr_init_and_inbound_i          (dbg_wait_fr_init_and_inbound_i),
+         .dbg_fft_flow_tlast_i                    (dbg_fft_flow_tlast_i),           
+         .dbg_mem_init_start_o                    (dbg_mem_init_start_o),     
+         .dbg_ddr_intf_mux_wr_sel_o               (dbg_ddr_intf_mux_wr_sel_o),
+         .dbg_ddr_intf_demux_rd_sel_o             (dbg_ddr_intf_demux_rd_sel_o),
+         .dbg_mem_shared_in_enb_o                 (dbg_mem_shared_in_enb_o), 
+         .dbg_mem_shared_in_addb_o                (dbg_mem_shared_in_addb_o),                      
+         .dbg_front_end_demux_fr_fista_o          (dbg_front_end_demux_fr_fista_o), 
+         .dbg_front_end_mux_to_fft_o              (dbg_front_end_mux_to_fft_o),  
+         .dbg_back_end_demux_fr_fh_mem_o          (dbg_back_end_demux_fr_fh_mem_o),  
+         .dbg_back_end_demux_fr_fv_mem_o          (dbg_back_end_demux_fr_fv_mem_o),  
+         .dbg_back_end_mux_to_front_end_o         (dbg_back_end_mux_to_front_end_o),                          
+         .dbg_f_h_fifo_wr_en_o                    (dbg_f_h_fifo_wr_en_o),  
+         .dbg_f_h_fifo_rd_en_o                    (dbg_f_h_fifo_rd_en_o),  
+         .dbg_f_h_fifo_full_i                     (dbg_f_h_fifo_full_i),   
+         .dbg_f_h_fifo_empty_i                    (dbg_f_h_fifo_empty_i),             
+         .dbg_f_h_fifo_wr_en_o                    (dbg_f_h_fifo_wr_en_o),  
+         .dbg_f_h_fifo_rd_en_o                    (dbg_f_h_fifo_rd_en_o),  
+         .dbg_f_h_fifo_full_i                     (dbg_f_h_fifo_full_i), 
+         .dbg_f_h_fifo_empty_i                    (dbg_f_h_fifo_empty_i),                                        
+         .dbg_fdbk_fifo_wr_en_o                   (dbg_fdbk_fifo_wr_en_o),  
+         .dbg_fdbk_fifo_rd_en_o                   (dbg_fdbk_fifo_rd_en_o), 
+         .dbg_fdbk_fifo_full_i                    (dbg_fdbk_fifo_full_i), 
+         .dbg_fdbk_fifo_empty_i                   (dbg_fdbk_fifo_empty_i),                 
+                     
+         .fista_accel_valid_rd_o                  (fista_accel_valid_rd_o) 
+                                     
       );
    `else
     ddr4_v2_2_17_hw_tg #
