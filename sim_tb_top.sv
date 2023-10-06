@@ -179,10 +179,10 @@ module sim_tb_top;
   wire                 dbg_f_h_fifo_rd_en_o;             
   reg                  dbg_f_h_fifo_full_i;              
   reg                  dbg_f_h_fifo_empty_i;             
-  wire                 dbg_f_h_fifo_wr_en_o;             
-  wire                 dbg_f_h_fifo_rd_en_o;             
-  reg                  dbg_f_h_fifo_full_i;              
-  reg                  dbg_f_h_fifo_empty_i;             
+  wire                 dbg_f_v_fifo_wr_en_o;             
+  wire                 dbg_f_v_fifo_rd_en_o;             
+  reg                  dbg_f_v_fifo_full_i;              
+  reg                  dbg_f_v_fifo_empty_i;             
   wire                 dbg_fdbk_fifo_wr_en_o;            
   wire                 dbg_fdbk_fifo_rd_en_o;            
   reg                  dbg_fdbk_fifo_full_i;             
@@ -426,10 +426,10 @@ ddr4_0 u_ddr4_0
      .dbg_f_h_fifo_rd_en_o              (dbg_f_h_fifo_rd_en_o),                   
      .dbg_f_h_fifo_full_i               (dbg_f_h_fifo_full_i),                    
      .dbg_f_h_fifo_empty_i              (dbg_f_h_fifo_empty_i),                   
-     .dbg_f_h_fifo_wr_en_o              (dbg_f_h_fifo_wr_en_o),                   
-     .dbg_f_h_fifo_rd_en_o              (dbg_f_h_fifo_rd_en_o),                   
-     .dbg_f_h_fifo_full_i               (dbg_f_h_fifo_full_i),                    
-     .dbg_f_h_fifo_empty_i              (dbg_f_h_fifo_empty_i),                                              
+     .dbg_f_v_fifo_wr_en_o              (dbg_f_v_fifo_wr_en_o),                   
+     .dbg_f_v_fifo_rd_en_o              (dbg_f_v_fifo_rd_en_o),                   
+     .dbg_f_v_fifo_full_i               (dbg_f_v_fifo_full_i),                    
+     .dbg_f_v_fifo_empty_i              (dbg_f_v_fifo_empty_i),                                              
      .dbg_fdbk_fifo_wr_en_o             (dbg_fdbk_fifo_wr_en_o),                  
      .dbg_fdbk_fifo_rd_en_o             (dbg_fdbk_fifo_rd_en_o),                  
      .dbg_fdbk_fifo_full_i              (dbg_fdbk_fifo_full_i),                   

@@ -107,10 +107,10 @@ entity mem_controller is
     f_h_fifo_empty_i             : in std_logic;
     
     -- rd,wr control to F(V) FIFO
-    f_h_fifo_wr_en_o             : out std_logic;
-    f_h_fifo_rd_en_o             : out std_logic;
-    f_h_fifo_full_i              : in std_logic;
-    f_h_fifo_empty_i             : in std_logic;
+    f_v_fifo_wr_en_o             : out std_logic;
+    f_v_fifo_rd_en_o             : out std_logic;
+    f_v_fifo_full_i              : in std_logic;
+    f_v_fifo_empty_i             : in std_logic;
     
     --  rd,wr control to Fdbk FIFO
     fdbk_fifo_wr_en_o             : out std_logic;
@@ -155,7 +155,7 @@ begin
         master_mode_i                               => master_mode_i, --: in std_logic_vector(4 downto 0);
                                                 
         rdy_fr_init_and_inbound_i                   => rdy_fr_init_and_inbound_i, --: in std_logic; -- Equiv. to Almost full flag
-        rdy_fr_init_and_inbound_i                   => rdy_fr_init_and_inbound_i, --: in std_logic; -- Equiv. to Almost empty flag
+         wait_fr_init_and_inbound_i                 =>  wait_fr_init_and_inbound_i, --: in std_logic; -- Equiv. to Almost empty flag
                                                  
         --fft signals                            
         fft_flow_tlast_i                            => fft_flow_tlast_i,--: in std_logic; -- This is a multiple clock pulse when 
@@ -197,10 +197,10 @@ begin
         f_h_fifo_empty_i                            => f_h_fifo_empty_i, --: in std_logic;
                                                    
         -- rd,wr control to F(V) FIFO              
-        f_h_fifo_wr_en_o                            => f_h_fifo_wr_en_o, --: out std_logic;
-        f_h_fifo_rd_en_o                            => f_h_fifo_rd_en_o, --: out std_logic;
-        f_h_fifo_full_i                             => f_h_fifo_full_i, --: in std_logic;
-        f_h_fifo_empty_i                            => f_h_fifo_empty_i, --: in std_logic;
+        f_v_fifo_wr_en_o                            => f_v_fifo_wr_en_o, --: out std_logic;
+        f_v_fifo_rd_en_o                            => f_v_fifo_rd_en_o, --: out std_logic;
+        f_v_fifo_full_i                             => f_v_fifo_full_i, --: in std_logic;
+        f_v_fifo_empty_i                            => f_v_fifo_empty_i, --: in std_logic;
                                                  
         --  rd,wr control to Fdbk FIFO           
         fdbk_fifo_wr_en_o                           => fdbk_fifo_wr_en_o, --: out std_logic;

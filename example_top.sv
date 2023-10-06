@@ -160,10 +160,10 @@ module example_top #
     output                 dbg_f_h_fifo_rd_en_o,                   
     input                  dbg_f_h_fifo_full_i,                    
     input                  dbg_f_h_fifo_empty_i,                   
-    output                 dbg_f_h_fifo_wr_en_o,                   
-    output                 dbg_f_h_fifo_rd_en_o,                   
-    input                  dbg_f_h_fifo_full_i,                    
-    input                  dbg_f_h_fifo_empty_i,                                              
+    output                 dbg_f_v_fifo_wr_en_o,                   
+    output                 dbg_f_v_fifo_rd_en_o,                   
+    input                  dbg_f_v_fifo_full_i,                    
+    input                  dbg_f_v_fifo_empty_i,                                              
     output                 dbg_fdbk_fifo_wr_en_o,                  
     output                 dbg_fdbk_fifo_rd_en_o,                  
     input                  dbg_fdbk_fifo_full_i,                   
@@ -547,8 +547,7 @@ ddr4_0 u_ddr4_0
 //  1) Simple Test Generator (STG)
 //  2) Advanced Test Generator (ATG)
 // 
-
-`define HW_TG_EN
+//`define HW_TG_EN
 
   `ifndef HW_TG_EN
     example_tb #
@@ -596,10 +595,10 @@ ddr4_0 u_ddr4_0
          .dbg_f_h_fifo_rd_en_o                    (dbg_f_h_fifo_rd_en_o),  
          .dbg_f_h_fifo_full_i                     (dbg_f_h_fifo_full_i),   
          .dbg_f_h_fifo_empty_i                    (dbg_f_h_fifo_empty_i),             
-         .dbg_f_h_fifo_wr_en_o                    (dbg_f_h_fifo_wr_en_o),  
-         .dbg_f_h_fifo_rd_en_o                    (dbg_f_h_fifo_rd_en_o),  
-         .dbg_f_h_fifo_full_i                     (dbg_f_h_fifo_full_i), 
-         .dbg_f_h_fifo_empty_i                    (dbg_f_h_fifo_empty_i),                                        
+         .dbg_f_v_fifo_wr_en_o                    (dbg_f_v_fifo_wr_en_o),  
+         .dbg_f_v_fifo_rd_en_o                    (dbg_f_v_fifo_rd_en_o),  
+         .dbg_f_v_fifo_full_i                     (dbg_f_v_fifo_full_i), 
+         .dbg_f_v_fifo_empty_i                    (dbg_f_v_fifo_empty_i),                                        
          .dbg_fdbk_fifo_wr_en_o                   (dbg_fdbk_fifo_wr_en_o),  
          .dbg_fdbk_fifo_rd_en_o                   (dbg_fdbk_fifo_rd_en_o), 
          .dbg_fdbk_fifo_full_i                    (dbg_fdbk_fifo_full_i), 

@@ -78,10 +78,10 @@ entity fista_accel_top is
     dbg_f_h_fifo_empty_i             : in std_logic;
  
     -- rd,wr control to F(V) FIFO
-    dbg_f_h_fifo_wr_en_o             : out std_logic;
-    dbg_f_h_fifo_rd_en_o             : out std_logic;
-    dbg_f_h_fifo_full_i              : in std_logic;
-    dbg_f_h_fifo_empty_i             : in std_logic;
+    dbg_f_v_fifo_wr_en_o             : out std_logic;
+    dbg_f_v_fifo_rd_en_o             : out std_logic;
+    dbg_f_v_fifo_full_i              : in std_logic;
+    dbg_f_v_fifo_empty_i             : in std_logic;
  
     --  rd,wr control to Fdbk FIFO
     dbg_fdbk_fifo_wr_en_o             : out std_logic;
@@ -97,7 +97,10 @@ entity fista_accel_top is
 end fista_accel_top;
 
 architecture struct of fista_accel_top is  
-  -- signals  
+  -- signals 
+  
+  signal dbg_mem_init_start_int       : std_logic; 
+  signal init_data                    : std_logic_vector(79 downto 0);
 begin
   
   
@@ -114,13 +117,13 @@ begin
         master_mode_i                               => dbg_master_mode_i, --: in std_logic_vector(4 downto 0);
                                                  
         rdy_fr_init_and_inbound_i                   => dbg_rdy_fr_init_and_inbound_i, --: in std_logic; -- Equiv. to Almost full flag
-        rdy_fr_init_and_inbound_i                   => dbg_rdy_fr_init_and_inbound_i, --: in std_logic; -- Equiv. to Almost empty flag
+        wait_fr_init_and_inbound_i                  => dbg_wait_fr_init_and_inbound_i, --: in std_logic; -- Equiv. to Almost empty flag
                                                     
         --fft signals                              
         fft_flow_tlast_i                            => dbg_fft_flow_tlast_i,--: in std_logic; -- This is a multiple clock pulse when 
                                                                   -- done writing to mem buffer by FFT state mach
                                                     
-        mem_init_start_o                            => dbg_mem_init_start_o,--: out std_logic;
+        mem_init_start_o                            => dbg_mem_init_start_int,--: out std_logic;
                                                     
         -- app interface to ddr controller             
         app_rdy_i           	                      => app_rdy_i,     --: in std_logic;
@@ -156,10 +159,10 @@ begin
         f_h_fifo_empty_i                            => dbg_f_h_fifo_empty_i, --: in std_logic;
                                                  
         -- rd,wr control to F(V) FIFO             
-        f_h_fifo_wr_en_o                            => dbg_f_h_fifo_wr_en_o, --: out std_logic;
-        f_h_fifo_rd_en_o                            => dbg_f_h_fifo_rd_en_o, --: out std_logic;
-        f_h_fifo_full_i                             => dbg_f_h_fifo_full_i, --: in std_logic;
-        f_h_fifo_empty_i                            => dbg_f_h_fifo_empty_i, --: in std_logic;
+        f_v_fifo_wr_en_o                            => dbg_f_v_fifo_wr_en_o, --: out std_logic;
+        f_v_fifo_rd_en_o                            => dbg_f_v_fifo_rd_en_o, --: out std_logic;
+        f_v_fifo_full_i                             => dbg_f_v_fifo_full_i, --: in std_logic;
+        f_v_fifo_empty_i                            => dbg_f_v_fifo_empty_i, --: in std_logic;
                                                       
         --  rd,wr control to Fdbk FIFO           
         fdbk_fifo_wr_en_o                           => dbg_fdbk_fifo_wr_en_o, --: out std_logic;
@@ -172,11 +175,28 @@ begin
     	                                              
     );
     
-    assign  app_wdf_data_o <= (others=>'0');       --: out std_logic_vector(511 downto 0);
+ app_wdf_data_o <= (others=>'0');       --: out std_logic_vector(511 downto 0);
     
     -----------------------------------------
     --  init_and_inbound flow
     -----------------------------------------	
+    u1 :  entity  work.inbound_flow_module 
+--generic(
+--	    generic_i  : in natural);
+    PORT MAP (
+
+        clk_i               	            =>   clk_i , --: in std_logic;
+        rst_i               	            =>   rst_i , --: in std_logic;
+                                    
+        master_mode_i                     =>   dbg_master_mode_i, --: in std_logic_vector(4 downto 0);
+        mem_init_start_i                  =>   dbg_mem_init_start_int, --: in std_logic; 
+                                     
+        -- Data to front end module      
+        init_data_o                       =>   init_data--: out std_logic_vector(79 downto 0)
+                                      
+     );
+    
+
     
     -----------------------------------------
     --  front_end
@@ -217,6 +237,12 @@ begin
     -----------------------------------------
     --  fista processing
     -----------------------------------------
+    
+        
+    -----------------------------------------
+    --  Assignments
+    -----------------------------------------
+     dbg_mem_init_start_o <=  dbg_mem_init_start_int;
    
             	
 end  architecture struct; 

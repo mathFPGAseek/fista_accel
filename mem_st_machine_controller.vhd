@@ -109,7 +109,7 @@ ENTITY mem_st_machine_controller is
 --	    generic_i  : in natural);
     PORT (
 
-	  clk_i               	         : in std_logic;
+	clk_i               	         : in std_logic;
     rst_i               	         : in std_logic;
     
     master_mode_i                  : in std_logic_vector(4 downto 0);
@@ -184,10 +184,10 @@ ENTITY mem_st_machine_controller is
     f_h_fifo_empty_i             : in std_logic;
     
     -- rd,wr control to F(V) FIFO
-    f_h_fifo_wr_en_o             : out std_logic;
-    f_h_fifo_rd_en_o             : out std_logic;
-    f_h_fifo_full_i              : in std_logic;
-    f_h_fifo_empty_i             : in std_logic;
+    f_v_fifo_wr_en_o             : out std_logic;
+    f_v_fifo_rd_en_o             : out std_logic;
+    f_v_fifo_full_i              : in std_logic;
+    f_v_fifo_empty_i             : in std_logic;
     
     --  rd,wr control to Fdbk FIFO
     fdbk_fifo_wr_en_o             : out std_logic;
@@ -213,7 +213,7 @@ ENTITY mem_st_machine_controller is
     );
     
   END mem_st_machine_controller;
-  
+   architecture struct of mem_st_machine_controller is
   -- signals
 
   
@@ -223,12 +223,12 @@ ENTITY mem_st_machine_controller is
   signal app_en_d          : std_logic;
   signal app_wdf_end_d     : std_logic;
   signal app_wdf_en_d      : std_logic;
-  signal app_wdf_wren_d    : std_logic_vector(2 downto 0);
+  signal app_wdf_wren_d    : std_logic;--: std_logic_vector(2 downto 0);
   signal app_cmd_r         : std_logic_vector(2 downto 0);
   signal app_en_r          : std_logic;
   signal app_wdf_end_r     : std_logic;
   signal app_wdf_en_r      : std_logic;
-  signal app_wdf_wren_r    : std_logic_vector(2 downto 0);
+  signal app_wdf_wren_r    : std_logic;--: std_logic_vector(2 downto 0);
     	
   -- mux/demux control to ddr memory controller.
   signal ddr_intf_mux_wr_sel_d    : std_logic_vector(1 downto 0);
@@ -259,14 +259,17 @@ ENTITY mem_st_machine_controller is
   signal f_h_fifo_rd_en_r            : std_logic;
     
   -- rd,wr control to F(V) FIFO
-  signal f_h_fifo_wr_en_d            : std_logic;
-  signal f_h_fifo_rd_en_d            : std_logic;
-  signal f_h_fifo_wr_en_r            : std_logic;
-  signal f_h_fifo_rd_en_r            : std_logic;
+  signal f_v_fifo_wr_en_d            : std_logic;
+  signal f_v_fifo_rd_en_d            : std_logic;
+  signal f_v_fifo_wr_en_r            : std_logic;
+  signal f_v_fifo_rd_en_r            : std_logic;
     
   --  rd,wr control to Fdbk FIFO
   signal fdbk_fifo_wr_en_d           : std_logic;
   signal fdbk_fifo_wr_en_r           : std_logic;
+  
+  signal fdbk_fifo_rd_en_d           : std_logic;
+  signal fdbk_fifo_rd_en_r           : std_logic;
   
   signal decoder_st_d                : std_logic_vector(5 downto 0);
   signal decoder_st_r                : std_logic_vector(5 downto 0);
@@ -313,6 +316,19 @@ ENTITY mem_st_machine_controller is
   signal clear_state_counter_5_r     : std_logic;
   signal clear_state_counter_6_d     : std_logic; 
   signal clear_state_counter_6_r     : std_logic;
+  
+  signal enable_state_counter_1_d     : std_logic; 
+  signal enable_state_counter_1_r     : std_logic;
+  signal enable_state_counter_2_d     : std_logic; 
+  signal enable_state_counter_2_r     : std_logic;
+  signal enable_state_counter_3_d     : std_logic; 
+  signal enable_state_counter_3_r     : std_logic;
+  signal enable_state_counter_4_d     : std_logic; 
+  signal enable_state_counter_4_r     : std_logic;
+  signal enable_state_counter_5_d     : std_logic; 
+  signal enable_state_counter_5_r     : std_logic;
+  signal enable_state_counter_6_d     : std_logic; 
+  signal enable_state_counter_6_r     : std_logic;
    
    
   -- States
@@ -337,16 +353,13 @@ ENTITY mem_st_machine_controller is
   --constants
   constant IMAGE256X256 : integer := 65536;
   constant FFT_IMAGE_SIZE : integer := 256;
- 
-  
-  architecture struct of mem_st_machine_controller is
     
   BEGIN
   
   ----------------------------------------
   -- Main State Machine (Comb)
   ----------------------------------------  	
-       st_mach_controller : process(
+   st_mach_controller : process(
        	  rdy_fr_init_and_inbound_i,
        	  wait_fr_init_and_inbound_i,
        	  app_rdy_i,
@@ -385,7 +398,7 @@ ENTITY mem_st_machine_controller is
             		   (app_wdf_rdy_i = '0' ) 
             		 ) then
             		ns_controller        <= state_init;
-            	elsif(state_counter_1_r >= IMAGE256X256 )  -- ??? Is amount right
+            	elsif(state_counter_1_r >= IMAGE256X256 ) then  -- ??? Is amount right
             		ns_controller        <= state_wait_for_fft; -- Complete B transfer ???
             		
             	else 
@@ -395,7 +408,7 @@ ENTITY mem_st_machine_controller is
             	
             when state_wait_for_fft =>
             	
-            	decoder_st_d <= "000011" --  Wait for FFT Completion
+            	decoder_st_d <= "000011"; --  Wait for FFT Completion
             	
             	if ( (extend_fft_flow_tlast_r = '1' ) and -- fft_flow_tlast_i multi cycle(window)
             		   (app_rdy_i = '1' ) and        -- signal 
@@ -416,55 +429,57 @@ ENTITY mem_st_machine_controller is
             	
             when state_wr_1d_fwd_av_row =>
             	 
-            	decoder_st_d <= "000100" --  -Write in 1-D FWD AV Row.
+            	decoder_st_d <= "000100"; --  -Write in 1-D FWD AV Row.
             	
             	if ( (app_rdy_i = '0' ) or
             		   (app_wdf_rdy_i = '0' )  ) then
             		 ns_controller <= state_stall_wr_1d_fwd_av_row;
-              elsif(state_counter_3_r >= FFT_IMAGE_SIZE ) -- complete one FFT write
-              	 ns_controller <= state_wait_for_fft;
-              elsif(state_counter_4_r >= IMAGE256X256 ) -- complete image
-              	ns_controller <=  state_rd_1d_fwd_av_col;
-              else
-              	ns_controller <=  state_wr_1d_fwd_av_row;	
-              end 
+                elsif(state_counter_3_r >= FFT_IMAGE_SIZE ) then -- complete one FFT write
+              	   ns_controller <= state_wait_for_fft;
+                elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
+              	  ns_controller <=  state_rd_1d_fwd_av_col;
+                else
+              	  ns_controller <=  state_wr_1d_fwd_av_row;	
+                end if;
             	
-            	          	
-            when state_rd_1d_fwd_av_col => 
             	
-            	decoder_st_d <= "000101" -- Read out 1-D FWD AV Col
+            when state_rd_1d_fwd_av_col  => 
+            	
+            	decoder_st_d <= "000101"; -- Read out 1-D FWD AV Col
             	
             	if ( (app_rdy_i = '0' ) or
             		   (app_wdf_rdy_i = '0' )  ) then
             		 ns_controller <= state_stall_rd_1d_fwd_av_col;
               --elsif(state_counter_5_r >= FFT_IMAGE_SIZE ) -- complete one FFT read
               --	 ns_controller <= state_wait_for_fft;  -- ??? incorrect
-              elsif(state_counter_6_r >= IMAGE256X256 ) -- complete image
+              elsif(state_counter_6_r >= IMAGE256X256 ) then -- complete image
               	ns_controller <=  state_DEBUG_STOP;
               else
               	ns_controller <=  state_rd_1d_fwd_av_col;	
-              end
+              end if;
               
             -- Stall States
             
             when state_stall_wr_1d_fwd_av_row => 
             	
-            	decoder_st_d <= "100100" -- Stall wr 1d fwd av
+            	decoder_st_d <= "100100"; -- Stall wr 1d fwd av
             	
             	if ( (app_rdy_i = '1' ) or
             		   (app_wdf_rdy_i = '1' )  ) then
             		 ns_controller <= state_wr_1d_fwd_av_row ;
               else
               	ns_controller <=  state_stall_wr_1d_fwd_av_row;	
-              end
+              end if;
             
               
             when state_DEBUG_STOP => 
             	
-            	decoder_st_d <= "011111"
+            	decoder_st_d <= "011111";
             	           	 	
        	
             when others =>
+            
+               decoder_st_d <= "000001";
        	
          end case;
        	 	
@@ -473,7 +488,7 @@ ENTITY mem_st_machine_controller is
   -----------------------------------------
   -- Main State Machine Mem & control Signals Decoder
   -----------------------------------------
-  st_mach_controller_mem_and_control_decoder : process( decode_st_r)
+  st_mach_controller_mem_and_control_decoder : process( decoder_st_r)
   	begin
   		
   	case decoder_st_r is
@@ -481,22 +496,22 @@ ENTITY mem_st_machine_controller is
   		when "000001" => -- INIT state
   			  			
   	  	-- app interface to ddr controller.
-        app_cmd_d         <=          '000'; --"Don't Care'--: out std_logic_vector(2 downto 0);
+        app_cmd_d         <=          "000"; --"Don't Care'--: out std_logic_vector(2 downto 0);
         app_en_d          <=          '0';   -- No wr/rd  --: out std_logic;
         app_wdf_end_d     <=          '0';   -- No wr     --: out std_logic;
         app_wdf_en_d      <=          '0';   -- No wr     --: out std_logic;
         app_wdf_wren_d    <=          '0';   -- No wr     --: out std_logic;
     	
         -- mux/demux control to ddr memory controller.
-        ddr_intf_mux_wr_sel_d    <=    '00';  --"Don't Care' --: out std_logic_vector(1 downto 0);
-        ddr_intf_demux_rd_sel_d  <=    '000'; --"Don't Care' --: out std_logic_vector(2 downto 0);
+        ddr_intf_mux_wr_sel_d    <=    "00";  --"Don't Care' --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care' --: out std_logic_vector(2 downto 0);
      
         -- rd control to shared input memory
         mem_shared_in_enb_d      <=   '0';    -- No rd --: out std_logic;
     
         -- mux/demux control to front and Backend modules  
         front_end_demux_fr_fista_d  <=  '0'; --"Don't Care'  --: out std_logic;
-        front_end_mux_to_fft_d      <=  '00; --"Don't Care'  --: out std_logic_vector(1 downto 0);
+        front_end_mux_to_fft_d      <=  "00"; --"Don't Care'  --: out std_logic_vector(1 downto 0);
         back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care'  --: out std_logic;
         back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care'  --: out std_logic;
         back_end_mux_to_front_end_d <=  '0'; --"Don't Care'  --: out std_logic;
@@ -506,8 +521,8 @@ ENTITY mem_st_machine_controller is
         f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         -- rd,wr control to F(V) FIFO
-        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
-        f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         --  rd,wr control to Fdbk FIFO
         fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
@@ -517,22 +532,22 @@ ENTITY mem_st_machine_controller is
       when "000010" => -- Write in B
       	
       	-- app interface to ddr controller
-        app_cmd_d         <=          '000'; --Wr B Mem      --: out std_logic_vector(2 downto 0);
+        app_cmd_d         <=          "000"; --Wr B Mem      --: out std_logic_vector(2 downto 0);
         app_en_d          <=          '1';   --Wr B Mem      --: out std_logic;
         app_wdf_end_d     <=          '0';   --Wr B Mem      --: out std_logic;
         app_wdf_en_d      <=          '1';   --Wr B Mem      --: out std_logic;
         app_wdf_wren_d    <=          '1';   --Wr B Mem      --: out std_logic_vector(2 downto 0);
     	
         -- mux/demux control to ddr memory controller.
-        ddr_intf_mux_wr_sel_d    <=    '00';  -- Wr B mem    --"Don't Care' --: out std_logic_vector(1 downto 0);
-        ddr_intf_demux_rd_sel_d  <=    '000'; --"Don't Care' --: out std_logic_vector(2 downto 0);
+        ddr_intf_mux_wr_sel_d    <=    "00";  -- Wr B mem    --"Don't Care' --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care' --: out std_logic_vector(2 downto 0);
      
         -- rd control to shared input memory
         mem_shared_in_enb_d      <=   '0';    -- No rd  --: out std_logic;
     
         -- mux/demux control to front and Backend modules  
         front_end_demux_fr_fista_d  <=  '0'; --"Don't Care' --: out std_logic;
-        front_end_mux_to_fft_d      <=  '01; --Select Init  --: out std_logic_vector(1 downto 0);
+        front_end_mux_to_fft_d      <=  "01"; --Select Init  --: out std_logic_vector(1 downto 0);
         back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_mux_to_front_end_d <=  '0'; --"Don't Care' --: out std_logic;
@@ -542,8 +557,8 @@ ENTITY mem_st_machine_controller is
         f_h_fifo_rd_en_d            <=  '0'; -- No wr --: out std_logic;
     
         -- rd,wr control to F(V) FIFO
-        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
-        f_h_fifo_rd_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_rd_en_d            <=  '0'; -- No wr --: out std_logic;
     
         --  rd,wr control to Fdbk FIFO
         fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
@@ -553,22 +568,22 @@ ENTITY mem_st_machine_controller is
       	               -- Wait for FFT Completion, after Read out 1-D FWD AV Col ( Step 1)
   			
   	  	-- app interface to ddr controller
-        app_cmd_d         <=          '000'; --"Don't Care'--: out std_logic_vector(2 downto 0);
+        app_cmd_d         <=          "000"; --"Don't Care'--: out std_logic_vector(2 downto 0);
         app_en_d          <=          '0';   -- No wr/rd  --: out std_logic;
         app_wdf_end_d     <=          '0';   -- No wr     --: out std_logic;
         app_wdf_en_d      <=          '0';   -- No wr     --: out std_logic;
         app_wdf_wren_d    <=          '0';   -- No wr     --: out std_logic;
     	
         -- mux/demux control to ddr memory controller.
-        ddr_intf_mux_wr_sel_d    <=    '00';  --"Don't Care' --: out std_logic_vector(1 downto 0);
-        ddr_intf_demux_rd_sel_d  <=    '000'; --"Don't Care' --: out std_logic_vector(2 downto 0);
+        ddr_intf_mux_wr_sel_d    <=    "00";  --"Don't Care' --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care' --: out std_logic_vector(2 downto 0);
      
         -- rd control to shared input memory
         mem_shared_in_enb_d      <=   '0';    -- No rd --: out std_logic;
     
         -- mux/demux control to front and Backend modules  
         front_end_demux_fr_fista_d  <=  '0'; --"Don't Care' --: out std_logic;
-        front_end_mux_to_fft_d      <=  '11; -- Select Fdbk --: out std_logic_vector(1 downto 0);
+        front_end_mux_to_fft_d      <=  "11"; -- Select Fdbk --: out std_logic_vector(1 downto 0);
         back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_mux_to_front_end_d <=  '0'; --"Don't Care' --: out std_logic;
@@ -578,8 +593,8 @@ ENTITY mem_st_machine_controller is
         f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         -- rd,wr control to F(V) FIFO
-        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
-        f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         --  rd,wr control to Fdbk FIFO
         fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
@@ -590,22 +605,22 @@ ENTITY mem_st_machine_controller is
       	                   
   			
   	  	-- app interface to ddr controller
-        app_cmd_d         <=          '000'; --wr FWD AV Mem         --: out std_logic_vector(2 downto 0);
+        app_cmd_d         <=          "000"; --wr FWD AV Mem         --: out std_logic_vector(2 downto 0);
         app_en_d          <=          '1';   --wr FWD AV Mem         --: out std_logic;
         app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
         app_wdf_en_d      <=          '1';   --wr FWD AV Mem         --: out std_logic;
         app_wdf_wren_d    <=          '1';   --wr FWD AV Mem         --: out std_logic;
     	
         -- mux/demux control to ddr memory controller.
-        ddr_intf_mux_wr_sel_d    <=    '01';  --rd(fr shared) 1-D Fwd Av Row --: out std_logic_vector(1 downto 0);
-        ddr_intf_demux_rd_sel_d  <=    '000'; --"Don't Care'      --: out std_logic_vector(2 downto 0);
+        ddr_intf_mux_wr_sel_d    <=    "01";  --rd(fr shared) 1-D Fwd Av Row --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care'      --: out std_logic_vector(2 downto 0);
      
         -- rd control to shared input memory
         mem_shared_in_enb_d      <=   '1';   --rd B Mem         --: out std_logic;
     
         -- mux/demux control to front and Backend modules  
         front_end_demux_fr_fista_d  <=  '0'; --"Don't Care' --: out std_logic;
-        front_end_mux_to_fft_d      <=  '00; --"Don't Care' --: out std_logic_vector(1 downto 0);
+        front_end_mux_to_fft_d      <=  "00"; --"Don't Care' --: out std_logic_vector(1 downto 0);
         back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_mux_to_front_end_d <=  '0'; --"Don't Care' --: out std_logic;
@@ -615,8 +630,8 @@ ENTITY mem_st_machine_controller is
         f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         -- rd,wr control to F(V) FIFO
-        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
-        f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         --  rd,wr control to Fdbk FIFO
         fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
@@ -625,22 +640,22 @@ ENTITY mem_st_machine_controller is
       when "000101" => --  Read out 1-D FWD AV Col ( Step 1)
       	  			
   	  	-- app interface to ddr controller
-        app_cmd_d         <=          '001'; --rd B Mem         --: out std_logic_vector(2 downto 0);
+        app_cmd_d         <=          "001"; --rd B Mem         --: out std_logic_vector(2 downto 0);
         app_en_d          <=          '1';   --rd B Mem         --: out std_logic;
         app_wdf_end_d     <=          '0';   --"Don't Care'     --: out std_logic;
         app_wdf_en_d      <=          '0';   --"Don't Care'     --: out std_logic;
         app_wdf_wren_d    <=          '0';   --"Don't Care'     --: out std_logic;
     	
         -- mux/demux control to ddr memory controller.
-        ddr_intf_mux_wr_sel_d    <=    '01';  --"Don't Care'           --: out std_logic_vector(1 downto 0);
-        ddr_intf_demux_rd_sel_d  <=    '100'; --rd 1-D Fwd Av col      --: out std_logic_vector(2 downto 0);
+        ddr_intf_mux_wr_sel_d    <=    "01";  --"Don't Care'           --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_d  <=    "100"; --rd 1-D Fwd Av col      --: out std_logic_vector(2 downto 0);
      
         -- rd control to shared input memory
         mem_shared_in_enb_d      <=   '0';    -- No rd                 --: out std_logic;
     
         -- mux/demux control to front and Backend modules  
         front_end_demux_fr_fista_d  <=  '0'; --"Don't Care' --: out std_logic;
-        front_end_mux_to_fft_d      <=  '11; -- Select Fdbk --: out std_logic_vector(1 downto 0);
+        front_end_mux_to_fft_d      <=  "11"; -- Select Fdbk --: out std_logic_vector(1 downto 0);
         back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_mux_to_front_end_d <=  '0'; --"Don't Care' --: out std_logic;
@@ -650,8 +665,8 @@ ENTITY mem_st_machine_controller is
         f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         -- rd,wr control to F(V) FIFO
-        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
-        f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         --  rd,wr control to Fdbk FIFO
         fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
@@ -668,22 +683,22 @@ ENTITY mem_st_machine_controller is
       	                   
   			
   	  	-- app interface to ddr controller
-        app_cmd_d         <=          '000'; --" Don't Care"    --: out std_logic_vector(2 downto 0);
+        app_cmd_d         <=          "000"; --" Don't Care"    --: out std_logic_vector(2 downto 0);
         app_en_d          <=          '0';   --No wr/rd         --: out std_logic;
         app_wdf_end_d     <=          '0';   --No wr            --: out std_logic;
         app_wdf_en_d      <=          '0';   --No wr            --: out std_logic;
         app_wdf_wren_d    <=          '0';   --No wr            --: out std_logic;
     	
         -- mux/demux control to ddr memory controller.
-        ddr_intf_mux_wr_sel_d    <=    '01';  --rd(fr shared) 1-D Fwd Av Row --: out std_logic_vector(1 downto 0);
-        ddr_intf_demux_rd_sel_d  <=    '000'; --"Don't Care'      --: out std_logic_vector(2 downto 0);
+        ddr_intf_mux_wr_sel_d    <=    "01";  --rd(fr shared) 1-D Fwd Av Row --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care'      --: out std_logic_vector(2 downto 0);
      
         -- rd control to shared input memory
         mem_shared_in_enb_d      <=   '0';   --No rd B Mem         --: out std_logic;
     
         -- mux/demux control to front and Backend modules  
         front_end_demux_fr_fista_d  <=  '0'; --"Don't Care' --: out std_logic;
-        front_end_mux_to_fft_d      <=  '00; --"Don't Care' --: out std_logic_vector(1 downto 0);
+        front_end_mux_to_fft_d      <=  "00"; --"Don't Care' --: out std_logic_vector(1 downto 0);
         back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_mux_to_front_end_d <=  '0'; --"Don't Care' --: out std_logic;
@@ -693,8 +708,8 @@ ENTITY mem_st_machine_controller is
         f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         -- rd,wr control to F(V) FIFO
-        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
-        f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         --  rd,wr control to Fdbk FIFO
         fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
@@ -703,22 +718,22 @@ ENTITY mem_st_machine_controller is
       when "100101" => -- Stall   Read out 1-D FWD AV Col ( Step 1)
       	  			
   	  	-- app interface to ddr controller
-        app_cmd_d         <=          '000'; --" Don't Care"    --: out std_logic_vector(2 downto 0);
+        app_cmd_d         <=          "000"; --" Don't Care"    --: out std_logic_vector(2 downto 0);
         app_en_d          <=          '0';   --No wr/rd         --: out std_logic;
         app_wdf_end_d     <=          '0';   --"Don't Care'     --: out std_logic;
         app_wdf_en_d      <=          '0';   --"Don't Care'     --: out std_logic;
         app_wdf_wren_d    <=          '0';   --"Don't Care'     --: out std_logic;
     	
         -- mux/demux control to ddr memory controller.
-        ddr_intf_mux_wr_sel_d    <=    '01';  --"Don't Care'           --: out std_logic_vector(1 downto 0);
-        ddr_intf_demux_rd_sel_d  <=    '100'; --rd 1-D Fwd Av col      --: out std_logic_vector(2 downto 0);
+        ddr_intf_mux_wr_sel_d    <=    "01";  --"Don't Care'           --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_d  <=    "100"; --rd 1-D Fwd Av col      --: out std_logic_vector(2 downto 0);
      
         -- rd control to shared input memory
         mem_shared_in_enb_d      <=   '0';    -- No rd                 --: out std_logic;
     
         -- mux/demux control to front and Backend modules  
         front_end_demux_fr_fista_d  <=  '0'; --"Don't Care' --: out std_logic;
-        front_end_mux_to_fft_d      <=  '11; -- Select Fdbk --: out std_logic_vector(1 downto 0);
+        front_end_mux_to_fft_d      <=  "11"; -- Select Fdbk --: out std_logic_vector(1 downto 0);
         back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
         back_end_mux_to_front_end_d <=  '0'; --"Don't Care' --: out std_logic;
@@ -728,8 +743,8 @@ ENTITY mem_st_machine_controller is
         f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         -- rd,wr control to F(V) FIFO
-        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
-        f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
     
         --  rd,wr control to Fdbk FIFO
         fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
@@ -755,22 +770,22 @@ ENTITY mem_st_machine_controller is
 
               
         -- app interface to ddr controller
-        app_cmd_r         <=          '000'; --: out std_logic_vector(2 downto 0);
+        app_cmd_r         <=          "000"; --: out std_logic_vector(2 downto 0);
         app_en_r          <=          '0';   --: out std_logic;
         app_wdf_end_r     <=          '0';   --: out std_logic;
         app_wdf_en_r      <=          '0';   --: out std_logic;
         app_wdf_wren_r    <=          '0';   --: out std_logic_vector(2 downto 0);
     	
         -- mux/demux control to ddr memory controller.
-        ddr_intf_mux_wr_sel_r    <=    '00';  --: out std_logic_vector(1 downto 0);
-        ddr_intf_demux_rd_sel_r  <=    '000'; --: out std_logic_vector(2 downto 0);
+        ddr_intf_mux_wr_sel_r    <=    "00";  --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_r  <=    "000"; --: out std_logic_vector(2 downto 0);
      
         -- rd control to shared input memory
         mem_shared_in_enb_r      <=   '0';    --: out std_logic;
     
         -- mux/demux control to front and Backend modules  
         front_end_demux_fr_fista_r  <=  '0'; --: out std_logic;
-        front_end_mux_to_fft_r      <=  '00; --: out std_logic_vector(1 downto 0);
+        front_end_mux_to_fft_r      <=  "00"; --: out std_logic_vector(1 downto 0);
         back_end_demux_fr_fh_mem_r  <=  '0'; --: out std_logic;
         back_end_demux_fr_fv_mem_r  <=  '0'; --: out std_logic;
         back_end_mux_to_front_end_r <=  '0'; --: out std_logic;
@@ -780,8 +795,8 @@ ENTITY mem_st_machine_controller is
         f_h_fifo_rd_en_r            <=  '0'; --: out std_logic;
     
         -- rd,wr control to F(V) FIFO
-        f_h_fifo_wr_en_r            <=  '0'; --: out std_logic;
-        f_h_fifo_rd_en_r            <=  '0'; --: out std_logic;
+        f_v_fifo_wr_en_r            <=  '0'; --: out std_logic;
+        f_v_fifo_rd_en_r            <=  '0'; --: out std_logic;
     
         --  rd,wr control to Fdbk FIFO
         fdbk_fifo_wr_en_r           <=  '0'; --: out std_logic;
@@ -789,6 +804,8 @@ ENTITY mem_st_machine_controller is
         			
         -- decoder 
         decoder_st_r                <= "000001"; -- init state
+        
+        ps_controller               <= state_init;
         			
        elsif(clk_i'event and clk_i = '1') then
        	
@@ -819,14 +836,16 @@ ENTITY mem_st_machine_controller is
         f_h_fifo_rd_en_r            <=  f_h_fifo_rd_en_d; --: out std_logic;
     
         -- rd,wr control to F(V) FIFO
-        f_h_fifo_wr_en_r            <=  f_h_fifo_wr_en_d; --: out std_logic;
-        f_h_fifo_rd_en_r            <=  f_h_fifo_rd_en_d; --: out std_logic;
+        f_v_fifo_wr_en_r            <=  f_v_fifo_wr_en_d; --: out std_logic;
+        f_v_fifo_rd_en_r            <=  f_v_fifo_rd_en_d; --: out std_logic;
     
         --  rd,wr control to Fdbk FIFO
         fdbk_fifo_wr_en_r           <=  fdbk_fifo_wr_en_d; --: out std_logic;
         			
         -- decoder
-        decoder_st_r                <= decoder_st_d;       			           	
+        decoder_st_r                <= decoder_st_d;
+        
+        ps_controller               <= ns_controller;       			           	
             	
        end if;
    end process st_mach_controller_mem_and_control_registers; 
@@ -834,21 +853,21 @@ ENTITY mem_st_machine_controller is
   -----------------------------------------
   -- Address Decoder
   -----------------------------------------
-  address_decoder: process( decode_st_r)
+  address_decoder: process( decoder_st_r)
   	begin
   		
   		case decoder_st_r is
   			
   	  when "000100" => -- write 1-D FWD AV Row
   		
-  		  bank_addr_d(3 downto 0)    <=	   '0000';   --upper Ping memory
+  		  bank_addr_d(3 downto 0)    <=	   "0000";   --upper Ping memory
   		  pipe1_addr_d(15 downto 0)  <=	   std_logic_vector(to_unsigned(state_counter_4_r,pipe1_addr_d'length)); --direct row addr; image counter
   		  pipe2_addr_d(15 downto 0)  <=    (others=>'0');
   		  app_addr_d(19 downto 0)    <=    bank_addr_r & pipe1_addr_r;
   			
   	  when "000101" => -- read 1-D FWD AV col
   	  	
-  	  	bank_addr_d(19 downto 16)  <=    '0000'     --upper Ping memory
+  	  	bank_addr_d(3 downto 0)  <=    "0000";     --upper Ping memory
   	  	pipe1_addr_d(15 downto 0)  <=	   std_logic_vector(to_unsigned(state_counter_5_r,pipe1_addr_d'length)); -- fft count
   	  	pipe2_addr_d(15 downto 0)  <=	   std_logic_vector(to_unsigned(state_counter_6_r,pipe2_addr_d'length)); -- image count
   	  	app_addr_d(19 downto 0)    <=    bank_addr_r & pipe1_addr_r(7 downto 0) & pipe2_addr_r(15 downto 8);   -- bank +
@@ -856,7 +875,7 @@ ENTITY mem_st_machine_controller is
   	  		                                                                                                     -- upper bits of image 		
   		when others =>
   			
-  			bank_addr_d(3 downto 0)    <=	   '0000';  
+  			bank_addr_d(3 downto 0)    <=	   "0000";  
   		  pipe1_addr_d(15 downto 0)  <=	   (others=>'0');
   		  pipe2_addr_d(15 downto 0)  <=    (others=>'0');
   		  app_addr_d(19 downto 0)    <=    (others=>'0');
@@ -868,11 +887,11 @@ ENTITY mem_st_machine_controller is
   -- Address decoder (Reg) Signals
   -----------------------------------------
 
-  address decoder_registers : process( clk_i, rst_i )
-         begin
+  dec_registers : process( clk_i, rst_i )
+  begin
             if( rst_i = '1') then
             	
-            	bank_addr_r(3 downto 0)    <=	   '0000';   --upper Ping memory
+            	bank_addr_r(3 downto 0)    <=	   "0000";   --upper Ping memory
   		        pipe1_addr_r(15 downto 0)  <=	   (others=> '0');
   		        pipe2_addr_r(15 downto 0)  <=    (others=>'0');
   		        app_addr_r(19 downto 0)    <=    (others=> '0');
@@ -887,13 +906,13 @@ ENTITY mem_st_machine_controller is
       	    end if;
       	    	
       	   
-  end process address decoder_registers;			
+  end process dec_registers;			
   			
 
   -----------------------------------------
   -- Main State Machine Counter Signals Decoder
   -----------------------------------------
-  st_mach_controller_counters_decoder : process( decode_st_r)
+  st_mach_controller_counters_decoder : process( decoder_st_r)
   	begin
   		
   	case decoder_st_r is
@@ -1154,8 +1173,8 @@ ENTITY mem_st_machine_controller is
               state_counter_2_r       <=  0 ;
       elsif( clk_i'event and clk_i = '1') then
               state_counter_2_r       <=  state_counter_2_r + 1;
-         end if;
       end if;
+
   end process state_counter_2;
   
   -- Count to complete one FFT write
@@ -1223,13 +1242,13 @@ ENTITY mem_st_machine_controller is
   decoder_st_r_del : process(clk_i, rst_i)
   	begin
   		if ( rst_i = '1') then
-  			decoder_st_rr <= (others = > '0');
+  			decoder_st_rr <= (others => '0');
   	  elsif(clk_i'event and clk_i  = '1') then
   	  	decoder_st_rr <= decoder_st_r;
   	  end if;
   end process decoder_st_r_del;
   
-  pulse_d <= not(decoder_st_rr(0)) and decoder_st_r(0); -- detect rising edge
+  pulse_d <= not(decoder_st_rr(0)) and decoder_st_r(0); -- detect rising edge.
   	
   pulse_reg : process(clk_i, rst_i)
   	begin
@@ -1240,7 +1259,7 @@ ENTITY mem_st_machine_controller is
   	  end if;
   end process pulse_reg;	
   	
-  mem_init_start_d <= pulse_r and not(decoder_st_r(5 downto 2 )) and decoder_st_r(1); -- state transition:
+  mem_init_start_d <= pulse_r and not(or decoder_st_r(5 downto 2 )) and decoder_st_r(1); -- state transition:
   	                                                                                  -- fr 
   	                                                                                  -- state_write_in_b
   	                                                                                  -- to
@@ -1298,7 +1317,7 @@ ENTITY mem_st_machine_controller is
   app_cmd_o         <=          app_cmd_r;        --: out std_logic_vector(2 downto 0);
   app_en_o          <=          app_en_r;         --: out std_logic;
   app_wdf_end_o     <=          app_wdf_end_r;    --: out std_logic;
-  app_wdf_en_o      <=          app_wdf_en_r;     --: out std_logic;
+  --app_wdf_en_o      <=          app_wdf_en_r;     --: out std_logic;
   app_wdf_wren_o    <=          app_wdf_wren_r;   --: out std_logic_vector(2 downto 0);
     	
   --mux/demux control to ddr memory controller.
@@ -1320,8 +1339,8 @@ ENTITY mem_st_machine_controller is
   f_h_fifo_rd_en_o            <=  f_h_fifo_rd_en_r; --: out std_logic;
     
   -- rd,wr control to F(V) FIFO
-  f_h_fifo_wr_en_o            <=  f_h_fifo_wr_en_r; --: out std_logic;
-  f_h_fifo_rd_en_o            <=  f_h_fifo_rd_en_r; --: out std_logic;
+  f_v_fifo_wr_en_o            <=  f_v_fifo_wr_en_r; --: out std_logic;
+  f_v_fifo_rd_en_o            <=  f_v_fifo_rd_en_r; --: out std_logic;
     
   --  rd,wr control to Fdbk FIFO
   fdbk_fifo_wr_en_o           <=  fdbk_fifo_wr_en_r; --: out std_logic;

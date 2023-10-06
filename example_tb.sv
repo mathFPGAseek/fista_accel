@@ -189,13 +189,13 @@ module example_tb #(
   input                       dbg_f_h_fifo_empty_i,            
                                                     
                               // rd,wr control to F(V) FIFO    
-  output                      dbg_f_h_fifo_wr_en_o,
+  output                      dbg_f_v_fifo_wr_en_o,
               
-  output                      dbg_f_h_fifo_rd_en_o,
+  output                      dbg_f_v_fifo_rd_en_o,
               
-  input                       dbg_f_h_fifo_full_i,
+  input                       dbg_f_v_fifo_full_i,
                
-  input                       dbg_f_h_fifo_empty_i,            
+  input                       dbg_f_v_fifo_empty_i,            
                                                          
                               //  rd,wr control to Fdbk FIFO   
   output                      dbg_fdbk_fifo_wr_en_o,
@@ -650,10 +650,10 @@ wire [APP_DATA_WIDTH-1:0]       exp_rd_data;       // Expected read data
     .dbg_f_h_fifo_empty_i             (dbg_f_h_fifo_empty_i), // in std_logic;
                                           
     // rd,wr control to F(V) FIFO         
-    .dbg_f_h_fifo_wr_en_o             (dbg_f_h_fifo_wr_en_o ), // out std_logic;
-    .dbg_f_h_fifo_rd_en_o             (dbg_f_h_fifo_rd_en_o), // out std_logic;
-    .dbg_f_h_fifo_full_i              (dbg_f_h_fifo_full_i), // in std_logic;
-    .dbg_f_h_fifo_empty_i             (dbg_f_h_fifo_empty_i), // in std_logic;
+    .dbg_f_v_fifo_wr_en_o             (dbg_f_v_fifo_wr_en_o ), // out std_logic;
+    .dbg_f_v_fifo_rd_en_o             (dbg_f_v_fifo_rd_en_o), // out std_logic;
+    .dbg_f_v_fifo_full_i              (dbg_f_v_fifo_full_i), // in std_logic;
+    .dbg_f_v_fifo_empty_i             (dbg_f_v_fifo_empty_i), // in std_logic;
                                           
     //  rd,wr control to Fdbk FIFO        
     .dbg_fdbk_fifo_wr_en_o            (dbg_fdbk_fifo_wr_en_o), //: out std_logic;
@@ -665,6 +665,6 @@ wire [APP_DATA_WIDTH-1:0]       exp_rd_data;       // Expected read data
     .fista_accel_valid_rd_o           (fista_accel_valid_rd_o)  //: out std_logic
                                         
     );
-    
-end fista_accel_top;
+  `endif  
+
 endmodule
