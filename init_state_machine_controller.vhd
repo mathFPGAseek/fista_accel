@@ -22,23 +22,25 @@
 -- Initial Date: 10/6/23
 -- Descr: Init state machine to read out init block
 --
-------------------------------------------------
+------------------------------------------------.
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 
     
-entity init_st_machine_controller           
+entity init_st_machine_controller is           
     port(                                
     	                                   
     	  clk_i                  : in std_logic; --clk_i, --: in std_logic;
         rst_i               	 : in std_logic; --rst_i, --: in std_logic;
                                
-        master_mode_i          : in std_logic; --master_mode_i, --: in std_logic_vector(4 downto 0);                                                                                        
+        master_mode_i          : in std_logic_vector(4 downto 0); --master_mode_i, --: in std_logic_vector(4 downto 0);                                                                                        
         mem_init_start_i       : in std_logic; --mem_init_start_i ,--: in std_logic;
+        
+        fft_rdy_i              : in std_logic;
                                
         addr_o                 : out std_logic_vector( 16 downto 0); --addr_int, --: out std_logic;
-        en_o                   : out std_logic; --en_int --: out std_logic;
+        en_o                   : out std_logic --en_int --: out std_logic;
                                     
                                     
     );                              
@@ -57,29 +59,36 @@ signal en_r          : std_logic;
 -- counters
 signal state_counter_1_r           : integer;
 signal state_counter_2_r           : integer;
+signal state_counter_3_r           : integer;
 
 signal clear_state_counter_1_d     : std_logic; 
 signal clear_state_counter_1_r     : std_logic;
 signal clear_state_counter_2_d     : std_logic; 
 signal clear_state_counter_2_r     : std_logic;
+signal clear_state_counter_3_d     : std_logic; 
+signal clear_state_counter_3_r     : std_logic;
 
 signal enable_state_counter_1_d     : std_logic; 
 signal enable_state_counter_1_r     : std_logic;
 signal enable_state_counter_2_d     : std_logic; 
 signal enable_state_counter_2_r     : std_logic;
+signal enable_state_counter_3_d     : std_logic; 
+signal enable_state_counter_3_r     : std_logic;
 
 -- address
 signal addr_d         : std_logic_vector ( 16 downto 0 );
 signal addr_r         : std_logic_vector ( 16 downto 0 );        
 
 --constant
-constant IMAGE256X256 : integer := 65536;
 constant DELAY32 : integer := 32;
+constant FFTSIZE256 : integer := 256;
+constant IMAGE256X256 : integer := 65536;
 	
 -- States
   
   type st_controller_t is (
     state_init,
+    state_wait,
     state_read_in_init,
     state_read_done
 
@@ -96,8 +105,10 @@ BEGIN
    st_mach_controller : process(
        	  mem_init_start_i,
        	  master_mode_i,
+       	  fft_rdy_i,
        	  state_counter_1_r,
        	  state_counter_2_r,
+       	  state_counter_3_r,      	  
        	  ps_controller
        ) begin
        	
@@ -107,7 +118,7 @@ BEGIN
             	
             	decoder_st_d <= "001"; --INIT State
             	
-            	if( (mem_init_start_i = "000" ) and
+            	if( (master_mode_i = "00000" ) and
             		  (mem_init_start_i = '1') 
             		) then
             		ns_controller <= state_read_in_init;
@@ -115,13 +126,28 @@ BEGIN
             		ns_controller <= state_init;
               end if;
               	
+            when state_wait =>           	
+            	            	
+            	decoder_st_d <= "010"; 
+            	
+            	if (  fft_rdy_i = '1' ) then
+            		 ns_controller <= state_read_in_init;
+            	else
+            		  ns_controller <= state_wait;
+            	end if;
+              	
               	
             when state_read_in_init =>
             	
-            	decoder_st_d <= "010"; --read init
+            	decoder_st_d <= "011"; 
             	
             	if ( state_counter_1_r <= IMAGE256X256) then
-            		 ns_controller <= state_read_in_init;
+            		
+            		if ( state_counter_2_r <= FFTSIZE256) then
+            		  ns_controller <= state_read_in_init;
+            		else
+            			ns_controller <= state_wait; 
+            		end if;            			
             	else
             		  ns_controller <= state_read_done;
             	end if;
@@ -129,9 +155,9 @@ BEGIN
               	
             when state_read_done =>
             	
-            	decoder_st_d <= "011"; --read init done
+            	decoder_st_d <= "100"; 
             	
-            	if ( state_counter_2_r = DELAY32) then
+            	if ( state_counter_3_r = DELAY32) then
             		 ns_controller <= state_init;
             	else
             		  ns_controller <= state_read_done;
@@ -159,10 +185,13 @@ BEGIN
   			
   		when "010" =>
   			
-  		 en_d   <= '1';
-  			
+  		 en_d   <= '0'; 			
   			
   		when "011" =>
+  			
+  		 en_d   <= '1';
+  		 
+  	  when "100" =>
   			
   		 en_d   <= '0';
   			
@@ -187,7 +216,7 @@ BEGIN
        	
        	
         -- decoder 
-        decoder_st_r                <= "000001"; -- init state
+        decoder_st_r                <= "001"; -- init state
         en_r                        <= '0'; 
         
         ps_controller               <= state_init;
@@ -201,7 +230,7 @@ BEGIN
         ps_controller               <= ns_controller;       			           	
             	
        end if;
-   end process st_mach_controller_mem_and_control_registers;       	
+   end process st_mach_controller_registers;       	
   
   -----------------------------------------
   -- Address Decoder
@@ -242,24 +271,44 @@ BEGIN
   			enable_state_counter_1_d  <= '0';
   			
   			clear_state_counter_2_d   <= '1'; 
-  			enable_state_counter_2_d  <= '0';
+  			enable_state_counter_2_d  <= '0';  			
+  			  			
+  			clear_state_counter_3_d   <= '1'; 
+  			enable_state_counter_3_d  <= '0';
   			
-  		when "010" => -- read
+  		when "010" => -- wait
   			
   			clear_state_counter_1_d   <= '0'; 
   			enable_state_counter_1_d  <= '1';
   			
   			clear_state_counter_2_d   <= '1'; 
-  			enable_state_counter_2_d  <= '0'; 
+  			enable_state_counter_2_d  <= '0';			
+  			  			
+  			clear_state_counter_3_d   <= '1'; 
+  			enable_state_counter_3_d  <= '0'; 
    
    
-     when "011" => -- delay
+     when "011" => -- read
+  			
+  			clear_state_counter_1_d   <= '0'; 
+  			enable_state_counter_1_d  <= '1'; 
+  			
+  			clear_state_counter_2_d   <= '0'; 
+  			enable_state_counter_2_d  <= '1';			
+  			  			
+  			clear_state_counter_3_d   <= '1'; 
+  			enable_state_counter_3_d  <= '0';
+  			
+  	 when "100" => -- delay
   			
   			clear_state_counter_1_d   <= '1'; 
   			enable_state_counter_1_d  <= '0'; 
   			
-  			clear_state_counter_2_d   <= '0'; 
-  			enable_state_counter_2_d  <= '1';
+  			clear_state_counter_2_d   <= '1'; 
+  			enable_state_counter_2_d  <= '0';			
+  			  			
+  			clear_state_counter_3_d   <= '0'; 
+  			enable_state_counter_3_d  <= '0';
     
      when others =>
        			
@@ -268,6 +317,9 @@ BEGIN
   			
   			clear_state_counter_2_d   <= '1'; 
   			enable_state_counter_2_d  <= '0';	
+  						  			
+  			clear_state_counter_2_d   <= '1'; 
+  			enable_state_counter_2_d  <= '0';
   			
   	end case;
   		
@@ -289,6 +341,10 @@ BEGIN
                             
               clear_state_counter_2_r         <= '1';
               enable_state_counter_2_r        <= '0';	
+                                   
+                            
+              clear_state_counter_3_r         <= '1';
+              enable_state_counter_3_r        <= '0';	
               
             elsif(clk_i'event and clk_i = '1') then	
             	              
@@ -299,6 +355,10 @@ BEGIN
                -- 
               clear_state_counter_2_r         <= clear_state_counter_2_d;
               enable_state_counter_2_r        <= enable_state_counter_2_d;
+                                        
+               -- 
+              clear_state_counter_3_r         <= clear_state_counter_3_d;
+              enable_state_counter_3_r        <= enable_state_counter_3_d;
       	    	
       	    end if;
       	    	
@@ -334,6 +394,19 @@ BEGIN
          end if;
       end if;
   end process state_counter_2;
+  
+    state_counter_3 : process( clk_i, rst_i, clear_state_counter_3_r)
+    begin
+      if ( rst_i = '1' ) then
+         state_counter_3_r       <=  0 ;
+      elsif( clear_state_counter_3_r = '1') then
+              state_counter_3_r       <=  0 ;
+      elsif( clk_i'event and clk_i = '1') then
+         if ( enable_state_counter_3_r = '1') then
+              state_counter_3_r       <=  state_counter_3_r + 1;
+         end if;
+      end if;
+  end process state_counter_3;
   
 
     

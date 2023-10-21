@@ -90,7 +90,7 @@ entity fista_accel_top is
     dbg_fdbk_fifo_empty_i             : in std_logic;
     
     -- output control
-    fista_accel_valid_rd_o       : out std_logic
+    fista_accel_valid_rd_o            : out std_logic
 
     );
     
@@ -101,10 +101,26 @@ architecture struct of fista_accel_top is
   
   signal dbg_mem_init_start_int       : std_logic; 
   signal init_data                    : std_logic_vector(79 downto 0);
+  signal init_valid_data              : std_logic;
+  
+  signal to_fft_data_int              : std_logic_vector(79 downto 0);
+  signal fista_accel_data_int         : std_logic_vector(79 downto 0);
+  	
+  signal to_fft_valid_int             : std_logic;
+  signal fista_accel_valid_int        : std_logic;
+  
+  signal stall_warning_int            : std_logic;--: out std_logic;
+  
+  signal dual_port_wr_int             : std_logic;--: out std_logic;  
+  signal dual_port_addr_int           : std_logic_vector(16 downto 0);--: out std_logic_vector(16 downto 0);
+  signal dual_port_data_int           : std_logic_vector(79 downto 0);--: out std_logic_vector(79 downto 0)
+  
+  signal fft_rdy_int                  : std_logic;
+  
 begin
   
   
-    -----------------------------------------
+    -----------------------------------------.
     -- Memory Controller 
     -----------------------------------------	
     
@@ -190,9 +206,12 @@ begin
                                     
         master_mode_i                     =>   dbg_master_mode_i, --: in std_logic_vector(4 downto 0);
         mem_init_start_i                  =>   dbg_mem_init_start_int, --: in std_logic; 
+        
+        fft_rdy_i                         =>   fft_rdy_int,
                                      
         -- Data to front end module      
-        init_data_o                       =>   init_data--: out std_logic_vector(79 downto 0)
+        init_data_o                       =>   init_data,--: out std_logic_vector(79 downto 0)
+        init_valid_data_o                 =>   init_valid_data
                                       
      );
     
@@ -202,13 +221,67 @@ begin
     --  front_end
     -----------------------------------------	
     
+    u2 : entity work.front_end_module 
+--generic(
+--	    generic_i  : in natural);
+    PORT MAP (                    
+                              
+	  clk_i               	      =>   clk_i, --: in std_logic;
+    rst_i               	      =>   rst_i, --: in std_logic;
+                               
+    master_mode_i                 =>   dbg_master_mode_i, --: in std_logic_vector(4 downto 0);
+                             
+    fr_init_data_i                =>   init_data, --: in std_logic_vector(79 downto 0);
+    fr_back_end_data_i            =>   (others=> '0'), --: in std_logic_vector(79 downto 0);
+    fr_back_end_data2_i           =>   (others=> '0'), --: in std_logic_vector(79 downto 0);
+    fr_fista_data_i               =>   (others=> '0'), --: in std_logic_vector(79 downto 0);
+    fr_fd_back_fifo_data_i        =>   (others=> '0'), --: in std_logic_vector(79 downto 0);
+                               
+    fr_init_data_valid_i          =>   init_valid_data, --: in std_logic;	
+    fr_back_end_valid_i           =>   '0', --: in std_logic;
+    fr_back_end_valid2_i          =>   '0', --: in std_logic;
+    fr_fista_valid_i              =>   '0', --: in std_logic;
+    fr_fd_back_fifo_valid_i       =>   '0', --: in std_logic;
+                                
+  	                          
+    -- Data to front end module  
+    to_fft_data_o                 =>   to_fft_data_int, --: out std_logic_vector(79 downto 0);
+    fista_accel_data_o            =>   fista_accel_data_int, --: out std_logic_vector(79 downto 0);
+    	                          
+    to_fft_valid_o                =>   to_fft_valid_int, --: out std_logic;
+    fista_accel_valid_o           =>   fista_accel_valid_int --: out std_logic;
+                                
+    );                          
+                             
     -----------------------------------------
     --  master_controller
     -----------------------------------------	
 
     -----------------------------------------
     --  fft engine
-    -----------------------------------------	
+    -----------------------------------------
+    u3 : entity work.fft_engine_module 
+--generic(
+--	    generic_i  : in natural);
+    PORT MAP (                      
+                                    
+	  clk_i               	     =>    clk_i,--: in std_logic;
+    rst_i               	     =>    rst_i,--: in std_logic;
+                                    
+    master_mode_i              =>    dbg_master_mode_i ,--: in std_logic_vector(4 downto 0);
+  	                                
+    -- Input Data to front end      
+    init_valid_data_i          =>    to_fft_valid_int,--: in std_logic;
+    init_data_i                =>    to_fft_data_int,--: in std_logic_vector(79 downto 0);    
+    stall_warning_o            =>    stall_warning_int,--: out std_logic;
+                                    
+    dual_port_wr_o             =>    dual_port_wr_int,--: out std_logic;  
+    dual_port_addr_o           =>    dual_port_addr_int,--: out std_logic_vector(16 downto 0);
+    dual_port_data_o           =>    dual_port_data_int,--: out std_logic_vector(79 downto 0)
+    
+    fft_rdy_o                  =>    fft_rdy_int                                 
+    );
+    
     
     -----------------------------------------
     --  mem_in_buffer

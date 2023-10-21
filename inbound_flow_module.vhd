@@ -37,9 +37,12 @@ entity inbound_flow_module is
     
     master_mode_i                  : in std_logic_vector(4 downto 0);
     mem_init_start_i               : in std_logic; 
+    
+    fft_rdy_i                      : in std_logic;
   	
     -- Data to front end module
-    init_data_o            : out std_logic_vector(79 downto 0)
+    init_data_o                    : out std_logic_vector(79 downto 0);
+    init_valid_data_o              : out std_logic
 
     );
     
@@ -50,6 +53,8 @@ architecture struct of inbound_flow_module is
 -- signals
 signal addr_int    : std_logic_vector ( 16 downto 0 );
 signal en_int      : std_logic;
+signal en_r        : std_logic;
+signal en_rr       : std_logic;
 
 signal re_dout     : std_logic_vector ( 33 downto 0 );   
 
@@ -60,7 +65,7 @@ constant IMAG_ZEROS : std_logic_vector(39 downto 0) := (others=> '0');
 begin
   
   
-    -----------------------------------------
+    -----------------------------------------.
     -- Init St mach contoller
     -----------------------------------------	
     
@@ -70,11 +75,13 @@ begin
     	clk_i                                       => clk_i, --: in std_logic;
         rst_i               	                    => rst_i, --: in std_logic;
                                                     
-        master_mode_i                               => master_mode_i, --: in std_logic_vector(4 downto 0);                                                                                        
-        mem_init_start_i                            => mem_init_start_i ,--: in std_logic;
+        master_mode_i                             => master_mode_i, --: in std_logic_vector(4 downto 0);                                                                                        
+        mem_init_start_i                          => mem_init_start_i ,--: in std_logic;
+        
+        fft_rdy_i                                 =>  fft_rdy_i,   
                                            
-        addr_o                                      => addr_int, --: out std_logic;
-        en_o                                        => en_int --: out std_logic;
+        addr_o                                    => addr_int, --: out std_logic;
+        en_o                                      => en_int --: out std_logic;
                                              
                                            
     );
@@ -94,6 +101,22 @@ begin
         douta       =>     re_dout         --: out STD_LOGIC_VECTOR ( 33 downto 0 )
     );
 
+    -----------------------------------------.
+    --  delay init memory valid
+    -----------------------------------------	
+    delay_init_memory_valid : process(clk_i, rst_i)
+    	begin
+    		if(rst_i = '1') then
+    			en_r     <= '0';
+    			en_rr    <= '0';
+    			
+    		elsif(clk_i'event and clk_i = '1')then
+    			en_r     <= en_int;
+    			en_rr    <= en_r;
+    			
+    		end if;
+    			
+    end process  delay_init_memory_valid;
 
     
     -----------------------------------------
@@ -108,6 +131,7 @@ begin
     --  Assignments
     -----------------------------------------	
      init_data_o <= IMAG_ZEROS & "000000" &  re_dout; 
+     init_valid_data_o <= en_rr;
             	
 end  architecture struct; 
     

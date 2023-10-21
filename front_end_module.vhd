@@ -37,11 +37,13 @@ entity front_end_module is
     
     master_mode_i                   : in std_logic_vector(4 downto 0);
     
+    fr_init_data_i                  : in std_logic_vector(79 downto 0);
     fr_back_end_data_i              : in std_logic_vector(79 downto 0);
     fr_back_end_data2_i             : in std_logic_vector(79 downto 0);
     fr_fista_data_i                 : in std_logic_vector(79 downto 0);
     fr_fd_back_fifo_data_i          : in std_logic_vector(79 downto 0);
-    	
+    
+    fr_init_data_valid_i            : in std_logic;	
     fr_back_end_valid_i             : in std_logic;
     fr_back_end_valid2_i            : in std_logic;
     fr_fista_valid_i                : in std_logic;
@@ -53,7 +55,7 @@ entity front_end_module is
     fista_accel_data_o              : out std_logic_vector(79 downto 0);
     	
     to_fft_valid_o                  : out std_logic;
-    fista_accel_valid_o             : out std_logic;
+    fista_accel_valid_o             : out std_logic
 
     );
     
@@ -62,66 +64,239 @@ end front_end_module ;
 architecture struct of front_end_module  is  
 	
 -- signals
-signal addr_int    : std_logic_vector ( 16 downto 0 );
-signal en_int      : std_logic;
 
-signal re_dout     : std_logic_vector ( 33 downto 0 );   
+signal mux_data_select_d          : std_logic_vector(2 downto 0);
+signal mux_data_select_r          : std_logic_vector(2 downto 0); 
+signal mux_out_to_fft_data_d      : std_logic_vector(79 downto 0);  
+signal mux_out_to_fft_data_r      : std_logic_vector(79 downto 0);
 
---constant
-constant IMAG_ZEROS : std_logic_vector(39 downto 0) := (others=> '0');
-
-
+	
+signal mux_control_select_d       : std_logic_vector(2 downto 0);
+signal mux_control_select_r       : std_logic_vector(2 downto 0);   
+signal mux_out_to_fft_control_d   : std_logic;	
+signal mux_out_to_fft_control_r   : std_logic;
+   
 begin
-  
+	
+-----------------------------------------
+-----------------------------------------
+-- DATA PATH
+-----------------------------------------
+-----------------------------------------			
+	
+	
+	  -----------------------------------------
+    -- Mux Data decoder
+    -----------------------------------------	
+    mux_data_select_to_fft : process( master_mode_i )
+    	begin
+    		
+    	case master_mode_i is
+    		
+    		when "00000" => -- A-1D-FWD-WR
+    			
+    			mux_data_select_d <= "000";
+    			
+    			
+    	  when others =>
+    	  	
+    	  	mux_data_select_d <= "111";
+    	  	
+    	end case;
+    		
+    		
+    end process mux_data_select_to_fft;
+    
+    -----------------------------------------
+    -- Mux Data decoder registers
+    -----------------------------------------	
+    mux_data_select_to_fft_registers : process(clk_i, rst_i)
+    	
+    	begin
+    		
+    		if( rst_i = '1') then
+    			
+    		  mux_data_select_r <= "000";
+    		  
+    		elsif( clk_i'event and clk_i = '1') then
+    			
+    			mux_data_select_r <= mux_data_select_d;
+    			
+    		end if;
+    			
+    end process mux_data_select_to_fft_registers;
   
     -----------------------------------------
-    -- Init St mach contoller
-    -----------------------------------------	
+    -- Mux output to FFT
+    -----------------------------------------.	
+    mux_data_to_fft : process (mux_data_select_r,
+    	                         fr_init_data_i,
+    	                         fr_back_end_data_i,
+    	                         fr_back_end_data2_i,
+    	                         fr_fista_data_i,
+    	                         fr_fd_back_fifo_data_i )
+    	begin
+    		
+    		case mux_data_select_r is
+    			
+    			
+    			when "000" =>
+    				
+    				mux_out_to_fft_data_d <=  fr_init_data_i;
+    				
+    			when "001" =>
+    				
+    				mux_out_to_fft_data_d <=  fr_back_end_data_i;  				
+    				
+    			when "010" =>
+    				
+    				mux_out_to_fft_data_d <=  fr_back_end_data2_i;  				
+    				
+    		  when "011" =>
+    		  	
+    		    mux_out_to_fft_data_d <=  fr_fista_data_i;
+    		  	   		  	
+    		  when "100" =>
+    		  	
+    		  	mux_out_to_fft_data_d <=  fr_fd_back_fifo_data_i;
+    		  	   		  	
+    		  when others => 
+    		  	
+    		  	mux_out_to_fft_data_d <=  fr_init_data_i;
+    		  	
+        end case;
+    end process mux_data_to_fft;
+   
+    -----------------------------------------
+    -- Mux output to FFT Registers
+    -----------------------------------------	 		  	
+    mux_data_to_fft_registers : process(clk_i, rst_i)
+    	begin
+    		
+    		if ( rst_i = '1') then
+    			 mux_out_to_fft_data_r <= (others=> '0');
+    			 	
+    		elsif(clk_i'event and clk_i = '1') then
+    			
+    			 mux_out_to_fft_data_r <= mux_out_to_fft_data_d;
+    			 
+    		end if;
+    			
+    end process mux_data_to_fft_registers;
     
-    U0 : entity work.init_st_machine_controller
-    PORT MAP(
-    	
-    	clk_i                                       => clk_i, --: in std_logic;
-        rst_i               	                    => rst_i, --: in std_logic;
-                                                    
-        master_mode_i                               => master_mode_i, --: in std_logic_vector(4 downto 0);                                                                                        
-        mem_init_start_i                            => mem_init_start_i ,--: in std_logic;
-                                           
-        addr_o                                      => addr_int, --: out std_logic;
-        en_o                                        => en_int --: out std_logic;
-                                             
-                                           
-    );
+-----------------------------------------
+-----------------------------------------
+-- CONTROL PATH
+-----------------------------------------
+-----------------------------------------	
 
+	  -----------------------------------------
+    -- Mux Data decoder
+    -----------------------------------------	
+    mux_control_select_to_fft : process( master_mode_i )
+    	begin
+    		
+    	case master_mode_i is
+    		
+    		when "00000" => -- A-1D-FWD-WR
+    			
+    			mux_control_select_d <= "000";
+    			
+    			
+    	  when others =>
+    	  	
+    	  	mux_control_select_d <= "111";
+    	  	
+    	end case;
+    		
+    		
+    end process mux_control_select_to_fft;
+    
+    -----------------------------------------
+    -- Mux Data decoder registers
+    -----------------------------------------	
+    mux_control_select_to_fft_registers : process(clk_i, rst_i)
+    	
+    	begin
+    		
+    		if( rst_i = '1') then
+    			
+    		  mux_control_select_r <= "000";
+    		  
+    		elsif( clk_i'event and clk_i = '1') then
+    			
+    			mux_control_select_r <= mux_control_select_d;
+    			
+    		end if;
+    			
+    end process mux_control_select_to_fft_registers;
+  
+    -----------------------------------------
+    -- Mux control output to FFT
+    -----------------------------------------..	
+    mux_control_to_fft : process(mux_control_select_r,
+    														 fr_init_data_valid_i,
+    														 fr_back_end_valid_i,
+    														 fr_back_end_valid2_i,
+    														 fr_fista_valid_i,
+    														 fr_fd_back_fifo_valid_i )
+    	begin
+    		
+    		case mux_control_select_r is
+    			
+    			
+    			when "000" =>
+    				
+    				mux_out_to_fft_control_d <=  fr_init_data_valid_i;
+    				
+    			when "001" =>
+    				
+    				mux_out_to_fft_control_d <=  fr_back_end_valid_i; 				
+    				
+    			when "010" =>
+    				
+    				mux_out_to_fft_control_d <=  fr_back_end_valid2_i;  				
+    				
+    		  when "011" =>
+    		  	
+    		    mux_out_to_fft_control_d <=  fr_fista_valid_i;
+    		  	   		  	
+    		  when "100" =>
+    		  	
+    		  	mux_out_to_fft_control_d <=  fr_fd_back_fifo_valid_i;
+    		  	   		  	
+    		  when others => 
+    		  	
+    		  	mux_out_to_fft_control_d <=  fr_init_data_valid_i;
+    		  	
+        end case;
+    end process mux_control_to_fft;
+   
+    -----------------------------------------
+    -- Mux  control output to FFT Registers
+    -----------------------------------------	 		  	
+    mux_control_to_fft_registers : process(clk_i, rst_i)
+    	begin
+    		
+    		if ( rst_i = '1') then
+    			 mux_out_to_fft_control_r <= '0';
+    			 	
+    		elsif(clk_i'event and clk_i = '1') then
+    			
+    			 mux_out_to_fft_control_r <= mux_out_to_fft_control_d;
+    			 
+    		end if;
+    			
+    end process mux_control_to_fft_registers;    
     
     -----------------------------------------.
-    --  init memory
-    -----------------------------------------	
-    -- From Python code of diffuser cam we have an init value;
-    -- we will start with psf
-    
-   U1 : entity work.blk_mem_gen_init_0 
-   PORT MAP ( 
-        clka        =>     clk_i,          --: in STD_LOGIC;
-        ena         =>     en_int,         --: in STD_LOGIC;
-        addra       =>     addr_int,       --: in STD_LOGIC_VECTOR ( 16 downto 0 );
-        douta       =>     re_dout         --: out STD_LOGIC_VECTOR ( 33 downto 0 )
-    );
-
-
-    
-    -----------------------------------------
-    --  inbound fifo
-    -----------------------------------------	
-    
-    -----------------------------------------
-    --  inbound state machine
-    -----------------------------------------	
-    
-    -----------------------------------------
     --  Assignments
     -----------------------------------------	
-     init_data_o <= IMAG_ZEROS & "000000" &  re_dout; 
+     to_fft_data_o         <= mux_out_to_fft_data_r;
+     fista_accel_data_o    <= mux_out_to_fft_data_r;
+     
+     to_fft_valid_o        <= mux_out_to_fft_control_r;
+     fista_accel_valid_o  <= mux_out_to_fft_control_r; 
             	
 end  architecture struct; 
     
