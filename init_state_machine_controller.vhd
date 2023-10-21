@@ -257,7 +257,7 @@ BEGIN
       	    	
       	   
   end process dec_registers;
-   -----------------------------------------
+   -----------------------------------------.
   -- Main State Machine Counter Signals Decoder
   -----------------------------------------
   st_mach_controller_counters_decoder : process( decoder_st_r)
@@ -279,7 +279,7 @@ BEGIN
   		when "010" => -- wait
   			
   			clear_state_counter_1_d   <= '0'; 
-  			enable_state_counter_1_d  <= '1';
+  			enable_state_counter_1_d  <= '0';
   			
   			clear_state_counter_2_d   <= '1'; 
   			enable_state_counter_2_d  <= '0';			
@@ -308,7 +308,7 @@ BEGIN
   			enable_state_counter_2_d  <= '0';			
   			  			
   			clear_state_counter_3_d   <= '0'; 
-  			enable_state_counter_3_d  <= '0';
+  			enable_state_counter_3_d  <= '1';
     
      when others =>
        			
