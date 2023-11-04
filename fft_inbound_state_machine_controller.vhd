@@ -90,6 +90,14 @@ signal enable_state_counter_1_d     : std_logic;
 signal enable_state_counter_1_r     : std_logic;
 signal enable_state_counter_2_d     : std_logic; 
 signal enable_state_counter_2_r     : std_logic;
+
+--signal delay_valid_1_r              : std_logic;
+--signal delay_valid_2_r              : std_logic;
+--signal delay_valid_3_r              : std_logic;
+--signal delay_valid_4_r              : std_logic;
+--signal delay_valid_5_r              : std_logic;
+--signal delay_valid_6_r              : std_logic;
+--signal delay_valid_7_r              : std_logic;
        
 
 --constant
@@ -119,7 +127,8 @@ BEGIN
   -- Main State Machine (Comb)
   ----------------------------------------  	
    st_mach_controller : process(
-       	  valid_i,
+   	      valid_i,
+       	  --delay_valid_7_r,
        	  master_mode_i,
        	  s_axis_data_trdy_i,
        	  m_axis_data_tlast_i,
@@ -560,10 +569,42 @@ BEGIN
          end if;
       end if;
   end process state_counter_2;
+  -----------------------------------------.
+  --  Delay valid to align input data
+  -----------------------------------------	
+  
+  --delay_valid_i : process( clk_i, rst_i )
+  --       begin
+  --          if( rst_i = '1') then
+  --            
+  --            delay_valid_1_r                 <= '0';
+  --            delay_valid_2_r                 <= '0';
+  --            delay_valid_3_r                 <= '0';
+  --            delay_valid_4_r                 <= '0';
+  --            delay_valid_5_r                 <= '0';
+  --            delay_valid_6_r                 <= '0';
+  --            delay_valid_7_r                 <= '0';
+  --     
+  --            
+  --          elsif(clk_i'event and clk_i = '1') then	
+  --          	
+  --          	delay_valid_1_r                 <= valid_i;
+  --            delay_valid_2_r                 <= delay_valid_1_r;
+  --            delay_valid_3_r                 <= delay_valid_2_r;
+  --            delay_valid_4_r                 <= delay_valid_3_r;
+  --            delay_valid_5_r                 <= delay_valid_4_r;
+  --            delay_valid_6_r                 <= delay_valid_5_r;
+  --            delay_valid_7_r                 <= delay_valid_6_r;
+  --
+  --    	    	
+  --    	    end if;
+  --    	    	
+  --    	   
+  --end process delay_valid_i;   
     
-    -----------------------------------------.
-    --  Assignments
-    -----------------------------------------	
+  -----------------------------------------..
+  --  Assignments
+  -----------------------------------------	
      s_axis_config_valid_o  <=   s_axis_config_valid_r;
      s_axis_config_tdata_o  <=   s_axis_config_tdata_r;
      

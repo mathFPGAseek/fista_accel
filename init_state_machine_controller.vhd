@@ -55,6 +55,7 @@ signal decoder_st_r  : std_logic_vector ( 2 downto 0 );
 	
 signal en_d          : std_logic;
 signal en_r          : std_logic;
+signal en_rr         : std_logic;
 
 -- counters
 signal state_counter_1_r           : integer;
@@ -81,7 +82,7 @@ signal addr_r         : std_logic_vector ( 16 downto 0 );
 
 --constant
 constant DELAY32 : integer := 32;
-constant FFTSIZE256 : integer := 256;
+constant FFTSIZE256 : integer := 252; 
 constant IMAGE256X256 : integer := 65536;
 	
 -- States
@@ -217,7 +218,8 @@ BEGIN
        	
         -- decoder 
         decoder_st_r                <= "001"; -- init state
-        en_r                        <= '0'; 
+        en_r                        <= '0';
+        en_rr                       <= '0'; 
         
         ps_controller               <= state_init;
         			
@@ -225,7 +227,8 @@ BEGIN
          
         -- decoder
         decoder_st_r                <= decoder_st_d;
-        en_r                        <=  en_d;
+        en_r                        <= en_d;
+        en_rr                       <= en_r;
         
         ps_controller               <= ns_controller;       			           	
             	
@@ -414,7 +417,7 @@ BEGIN
     --  Assignments
     -----------------------------------------	
      addr_o <= addr_r;
-     en_o <= en_r; 
+     en_o <= en_rr; 
             	
 end  architecture struct; 
     
