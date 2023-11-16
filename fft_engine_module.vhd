@@ -80,8 +80,8 @@ signal delay_data_4_r           : std_logic_vector(79 downto 0);
 signal delay_data_5_r           : std_logic_vector(79 downto 0);
 signal delay_data_6_r           : std_logic_vector(79 downto 0);
 --signal delay_data_7_r           : std_logic_vector(79 downto 0);
-
-
+signal fft_input_data           : std_logic_vector(79 downto 0);        
+ 
 --constant
 --constant IMAG_ZEROS : std_logic_vector(39 downto 0) := (others=> '0');
 
@@ -97,6 +97,8 @@ signal   fft_raw_mem : MEM_ARRAY;
 file     write_file : text;
 signal   dummy  : std_logic := '1';
 signal   write_fft_1d_raw_done : result_type;
+
+constant PAD_ZEROS  : std_logic_vector(5 downto 0) := (others=> '0');
 	
 -- counters
 signal state_counter_1_r            : integer;
@@ -137,6 +139,9 @@ signal fft_bin_seq_addr : bit_addr :=
        230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 
        240, 241, 242, 243, 222, 245, 246, 247, 248, 249, 
        250, 251, 252, 253, 254, 255 );
+  
+       
+       
 
   -------------------------------------------------
 	-- Function Write to a file the mem contents to check
@@ -236,6 +241,9 @@ begin
       	   
   end process delay_data_i;                       
 
+     
+    fft_input_data <= PAD_ZEROS & delay_data_6_r(79 downto 46) & PAD_ZEROS & delay_data_6_r(39 downto 6); -- little endian
+    	                                                                                                    -- bottom padded
     
     -----------------------------------------
     --  FFT Core
@@ -247,7 +255,7 @@ begin
     s_axis_config_tdata 					=>  s_axis_config_tdata_int, --: in STD_LOGIC_VECTOR ( 15 downto 0 );
     s_axis_config_tvalid 					=>  s_axis_config_valid_int, --: in STD_LOGIC;
     s_axis_config_tready 					=>  s_axis_config_trdy_int, --: out STD_LOGIC;
-    s_axis_data_tdata 						=>  delay_data_6_r, --: in STD_LOGIC_VECTOR ( 79 downto 0 ); ???? Need to delay
+    s_axis_data_tdata 						=>  fft_input_data, --: in STD_LOGIC_VECTOR ( 79 downto 0 ); ???? Need to delay
     s_axis_data_tvalid 						=>  s_axis_data_tvalid_int, --: in STD_LOGIC;
     s_axis_data_tready 						=>  s_axis_data_trdy_int, --: out STD_LOGIC;
     s_axis_data_tlast 						=>  s_axis_data_tlast_int, --: in STD_LOGIC;

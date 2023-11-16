@@ -56,7 +56,8 @@ signal en_int      : std_logic;
 signal en_r        : std_logic;
 signal en_rr       : std_logic;
 
-signal re_dout     : std_logic_vector ( 33 downto 0 );   
+--signal re_dout     : std_logic_vector ( 33 downto 0 );
+signal re_dout     : std_logic_vector ( 39 downto 0 );      
 
 --constant
 constant IMAG_ZEROS : std_logic_vector(39 downto 0) := (others=> '0');
@@ -93,15 +94,24 @@ begin
     -- From Python code of diffuser cam we have an init value;
     -- we will start with psf
     
-   U1 : entity work.blk_mem_gen_init_0 
+   --U1 : entity work.blk_mem_gen_init_0 
+   --PORT MAP ( 
+   --     clka        =>     clk_i,          --: in STD_LOGIC;
+   --     ena         =>     en_int,         --: in STD_LOGIC;
+   --     addra       =>     addr_int,       --: in STD_LOGIC_VECTOR ( 16 downto 0 );
+   --     douta       =>     re_dout         --: out STD_LOGIC_VECTOR ( 33 downto 0 )
+   --);
+    
+   U1 : entity work.blk_mem_40bit_gen_0 
    PORT MAP ( 
-        clka        =>     clk_i,          --: in STD_LOGIC;
-        ena         =>     en_int,         --: in STD_LOGIC;
-        addra       =>     addr_int,       --: in STD_LOGIC_VECTOR ( 16 downto 0 );
-        douta       =>     re_dout         --: out STD_LOGIC_VECTOR ( 33 downto 0 )
-    );
+    clka            =>      clk_i,         --: in STD_LOGIC;
+    ena             =>      en_int,        --: in STD_LOGIC;
+    addra           =>      addr_int(15 downto 0),      --: in STD_LOGIC_VECTOR ( 15 downto 0 );
+    douta           =>      re_dout        --: out STD_LOGIC_VECTOR ( 39 downto 0 )
+  );                                      
 
-    -----------------------------------------.
+
+    -----------------------------------------
     --  delay init memory valid
     -----------------------------------------	
     delay_init_memory_valid : process(clk_i, rst_i)
@@ -130,7 +140,7 @@ begin
     -----------------------------------------
     --  Assignments
     -----------------------------------------	
-     init_data_o <= IMAG_ZEROS & "000000" &  re_dout; 
+     init_data_o <= IMAG_ZEROS & re_dout; 
      init_valid_data_o <= en_rr;
             	
 end  architecture struct; 

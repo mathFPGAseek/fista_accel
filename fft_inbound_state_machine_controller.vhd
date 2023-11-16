@@ -252,7 +252,7 @@ BEGIN
   		when "0010" => -- FWD Config
   			
   		 s_axis_config_valid_d  <= '1';            --: out std_logic;
-       s_axis_config_tdata_d  <= (others=> '0'); --: out std_logic_vector(15 downto 0);
+       s_axis_config_tdata_d  <=  x"0155"; --: out std_logic_vector(15 downto 0);
         
        s_axis_data_tvalid_d   <= '0';            --: out std_logic;
        
@@ -263,7 +263,7 @@ BEGIN
   		when "0011" => -- Inv Config
   			  			
   		 s_axis_config_valid_d  <= '1';            --: out std_logic;
-       s_axis_config_tdata_d  <= x"0156";        --: out std_logic_vector(15 downto 0);
+       s_axis_config_tdata_d  <= x"0154";        --: out std_logic_vector(15 downto 0);
         
        s_axis_data_tvalid_d   <= '0';            --: out std_logic;
        
