@@ -137,7 +137,7 @@ signal fft_bin_seq_addr : bit_addr :=
        210, 211, 212, 213, 214, 215, 216, 217, 218, 219, 
        220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 
        230, 231, 232, 233, 234, 235, 236, 237, 238, 239, 
-       240, 241, 242, 243, 222, 245, 246, 247, 248, 249, 
+       240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 
        250, 251, 252, 253, 254, 255 );
   
        
@@ -384,9 +384,9 @@ begin
   	  end if;
   end process delay_terminal_count;
                 
-  -----------------------------------------------------------------------.
-  -- Store FFT outputs to memory; We are reading an array built by  process record_outputs
   -----------------------------------------------------------------------
+  -- Store FFT outputs to memory; We are reading an array built by  process record_outputs
+  -----------------------------------------------------------------------.
   RamProcRawData : process(clk_i,rst_i, m_axis_data_tlast_int)
     begin
   	  if ( rst_i = '1' ) then
@@ -394,7 +394,7 @@ begin
          dummy <= '1';
       elsif( m_axis_data_tlast_int = '1') then
          --fft_raw_mem <= (Others => '0');
-         dummy <= '1';
+         fft_raw_mem(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);
   	  elsif m_axis_data_tvalid_int = '1' then 		
   			 fft_raw_mem(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);  				  
   		end if;
