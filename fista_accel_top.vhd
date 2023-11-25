@@ -99,24 +99,27 @@ end fista_accel_top;
 architecture struct of fista_accel_top is  
   -- signals 
   
-  signal dbg_mem_init_start_int       : std_logic; 
-  signal init_data                    : std_logic_vector(79 downto 0);
-  signal init_valid_data              : std_logic;
+  signal dbg_mem_init_start_int            : std_logic; 
+  signal init_data                         : std_logic_vector(79 downto 0);
+  signal init_valid_data                   : std_logic;
   
-  signal to_fft_data_int              : std_logic_vector(79 downto 0);
-  signal fista_accel_data_int         : std_logic_vector(79 downto 0);
+  signal to_fft_data_int                   : std_logic_vector(79 downto 0);
+  signal fista_accel_data_int              : std_logic_vector(79 downto 0);
   	
-  signal to_fft_valid_int             : std_logic;
-  signal fista_accel_valid_int        : std_logic;
+  signal to_fft_valid_int                  : std_logic;
+  signal fista_accel_valid_int             : std_logic;
   
-  signal stall_warning_int            : std_logic;--: out std_logic;
+  signal stall_warning_int                 : std_logic;--: out std_logic;
   
-  signal dual_port_wr_int             : std_logic;--: out std_logic;  
-  signal dual_port_addr_int           : std_logic_vector(16 downto 0);--: out std_logic_vector(16 downto 0);
-  signal dual_port_data_int           : std_logic_vector(79 downto 0);--: out std_logic_vector(79 downto 0)
+  signal dual_port_wr_int                  : std_logic_vector(0 downto 0);--: out std_logic;  
+  signal dual_port_addr_int                : std_logic_vector(16 downto 0);--: out std_logic_vector(16 downto 0);
+  signal dual_port_data_int                : std_logic_vector(79 downto 0);--: out std_logic_vector(79 downto 0)
   
-  signal fft_rdy_int                  : std_logic;
+  signal fft_rdy_int                       : std_logic;
   
+  signal dbg_mem_shared_in_enb_int         : std_logic;
+  signal dbg_mem_shared_in_addb_int        : std_logic_vector(7 downto 0);
+  signal data_to_mem_intf_fr_mem_in_buffer : std_logic_vector(79 downto 0);
 begin
   
   
@@ -158,8 +161,8 @@ begin
         ddr_intf_mux_wr_sel_o                       => dbg_ddr_intf_mux_wr_sel_o, --: out std_logic_vector(1 downto 0);
         ddr_intf_demux_rd_sel_o                     => dbg_ddr_intf_demux_rd_sel_o, --: out std_logic_vector(2 downto 0);
                                                  
-        mem_shared_in_enb_o                         => dbg_mem_shared_in_enb_o, --: out std_logic;
-        mem_shared_in_addb_o                        => dbg_mem_shared_in_addb_o, --: out std_logic_vector(7 downto 0);
+        mem_shared_in_enb_o                         => dbg_mem_shared_in_enb_int, --: out std_logic;
+        mem_shared_in_addb_o                        => dbg_mem_shared_in_addb_int, --: out std_logic_vector(7 downto 0);
                                                   
         -- mux control to front and Backend modules  
         front_end_demux_fr_fista_o                  => dbg_front_end_demux_fr_fista_o, --: out std_logic;
@@ -275,7 +278,7 @@ begin
     init_data_i                =>    to_fft_data_int,--: in std_logic_vector(79 downto 0);    
     stall_warning_o            =>    stall_warning_int,--: out std_logic;
                                     
-    dual_port_wr_o             =>    dual_port_wr_int,--: out std_logic;  
+    dual_port_wr_o             =>    dual_port_wr_int(0),--: out std_logic;  
     dual_port_addr_o           =>    dual_port_addr_int,--: out std_logic_vector(16 downto 0);
     dual_port_data_o           =>    dual_port_data_int,--: out std_logic_vector(79 downto 0)
     
@@ -285,7 +288,19 @@ begin
     
     -----------------------------------------
     --  mem_in_buffer
-    -----------------------------------------	
+    -----------------------------------------.	
+    u4 : entity work.mem_in_buffer_module 
+    PORT MAP( 
+    clk_i                     =>     clk_i,             --: in STD_LOGIC;
+    ena                       =>     dual_port_wr_int(0),  --: in STD_LOGIC;
+    wea                       =>     dual_port_wr_int,--: in STD_LOGIC_VECTOR ( 0 to 0 );
+    addra                     =>     dual_port_addr_int(7 downto 0),--: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    dina                      =>     dual_port_data_int,--: in STD_LOGIC_VECTOR ( 79 downto 0 );
+    clkb                      =>     clk_i,--: in STD_LOGIC;
+    enb                       =>     dbg_mem_shared_in_enb_int,--: in STD_LOGIC;
+    addrb                     =>     dbg_mem_shared_in_addb_int,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    doutb                     =>     data_to_mem_intf_fr_mem_in_buffer--: out STD_LOGIC_VECTOR ( 79 downto 0 )
+  );
     
     -----------------------------------------
     --  mem_intf
@@ -315,8 +330,10 @@ begin
     -----------------------------------------
     --  Assignments
     -----------------------------------------
-     dbg_mem_init_start_o <=  dbg_mem_init_start_int;
-   
+     dbg_mem_init_start_o     <=  dbg_mem_init_start_int;
+     
+     dbg_mem_shared_in_enb_o  <= dbg_mem_shared_in_enb_int;
+     dbg_mem_shared_in_addb_o <= dbg_mem_shared_in_addb_int;
             	
 end  architecture struct; 
     

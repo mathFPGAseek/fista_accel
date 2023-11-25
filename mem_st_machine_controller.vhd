@@ -421,8 +421,8 @@ ENTITY mem_st_machine_controller is
             		   (app_wdf_rdy_i = '1') and
             		   (master_mode_i(0) = '1')  -- read         		   	 
             		 ) then
-            		ns_controller        <= state_rd_1d_fwd_av_col;
-            	else 
+            		ns_controller        <= state_rd_1d_fwd_av_col; -- ??? DO I need to do
+            	else                                              -- redundant with state below
             		ns_controller        <= state_wait_for_fft; 
             	end if;
             	

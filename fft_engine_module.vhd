@@ -84,8 +84,16 @@ signal fft_input_data           : std_logic_vector(79 downto 0);
  
 --constant
 --constant IMAG_ZEROS : std_logic_vector(39 downto 0) := (others=> '0');
+------------------------------------------------- 
+-- For Synthesis and Verification                          
+-------------------------------------------------
 
+signal state_counter_1_r            : integer;
+
+
+-------------------------------------------------
 -- For Verification Only
+-------------------------------------------------
 
 constant MAX_SAMPLES : integer := 2**8;  -- maximum number of samples in a frame
 constant IP_WIDTH    : integer := 34;
@@ -101,7 +109,7 @@ signal   write_fft_1d_raw_done : result_type;
 constant PAD_ZEROS  : std_logic_vector(5 downto 0) := (others=> '0');
 	
 -- counters
-signal state_counter_1_r            : integer;
+--signal state_counter_1_r            : integer;
 --signal clear_state_counter_1_d      : std_logic;
 --signal clear_state_counter_1_r      : std_logic;
 --signal enable_state_counter_1_d     : std_logic; 
@@ -271,15 +279,29 @@ begin
     event_data_out_channel_halt 	=>  open --: out STD_LOGIC
   );
 
-    -----------------------------------------
-    --  Outbound state machine
-    -----------------------------------------	
+
+  ----------------------------------------..
+  -- Counters for Output Address and Verification
+  ----------------------------------------
+  -- counter for lower index
+  state_counter_1 : process( clk_i, rst_i,m_axis_data_tlast_int_r)
+    begin
+      if  ( rst_i = '1' )   then
+          state_counter_1_r       <=  0 ;
+      elsif(  m_axis_data_tlast_int_r = '1' ) then
+          state_counter_1_r       <=  0 ;
+      elsif( clk_i'event and clk_i = '1') then
+        if ( m_axis_data_tvalid_int = '1') then
+          state_counter_1_r       <=  state_counter_1_r + 1;
+        end if;
+      end if;
+  end process state_counter_1;	
     
     -----------------------------------------
     --  Assignments
     -----------------------------------------	
     dual_port_wr_o       <=  m_axis_data_tvalid_int;     
-    dual_port_addr_o     <=  (others => '0');         
+    dual_port_addr_o     <=  std_logic_vector(to_unsigned(state_counter_1_r,dual_port_addr_o'length));         
     dual_port_data_o     <=  dual_port_data_int; 
     
     fft_rdy_o            <=  fft_rdy_int;
@@ -319,18 +341,18 @@ begin
   -- Counters
   ----------------------------------------
   -- counter for lower index
-  state_counter_1 : process( clk_i, rst_i,m_axis_data_tlast_int_r)
-    begin
-      if  ( rst_i = '1' )   then
-          state_counter_1_r       <=  0 ;
-      elsif(  m_axis_data_tlast_int_r = '1' ) then
-          state_counter_1_r       <=  0 ;
-      elsif( clk_i'event and clk_i = '1') then
-        if ( m_axis_data_tvalid_int = '1') then
-          state_counter_1_r       <=  state_counter_1_r + 1;
-        end if;
-      end if;
-  end process state_counter_1;
+  --state_counter_1 : process( clk_i, rst_i,m_axis_data_tlast_int_r)
+  --  begin
+  --    if  ( rst_i = '1' )   then
+  --        state_counter_1_r       <=  0 ;
+  --    elsif(  m_axis_data_tlast_int_r = '1' ) then
+  --        state_counter_1_r       <=  0 ;
+  --    elsif( clk_i'event and clk_i = '1') then
+  --      if ( m_axis_data_tvalid_int = '1') then
+  --        state_counter_1_r       <=  state_counter_1_r + 1;
+  --      end if;
+  --    end if;
+  --end process state_counter_1;
   --counter for upper index
   state_counter_2 : process( clk_i, rst_i,clear_state_counter_2_rr)
     begin
