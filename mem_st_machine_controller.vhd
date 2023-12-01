@@ -167,6 +167,7 @@ ENTITY mem_st_machine_controller is
     --mem_shared_in_ena_o       : out std_logic;
     --mem_shared_in_wea_o       : out std_logic_vector(0 downto 0);
     --mem_shared_in_addra_o     : out std_logic_vector(7 downto 0);
+    mem_shared_in_ch_state_i  : in std_logic;
     mem_shared_in_enb_o       : out std_logic;
     mem_shared_in_addb_o      : out std_logic_vector(7 downto 0);
     
@@ -239,6 +240,9 @@ ENTITY mem_st_machine_controller is
   -- rd control to shared input memory
   signal mem_shared_in_enb_d      : std_logic;
   signal mem_shared_in_enb_r      : std_logic;
+  signal delay_mvalid_i           : std_logic;
+  signal falling_mvalid_event_d   : std_logic;
+  signal falling_mvalid_event_r   : std_logic;
     
   -- mux/demux control to front and Backend modules
   signal front_end_demux_fr_fista_d  : std_logic;
@@ -360,6 +364,7 @@ ENTITY mem_st_machine_controller is
   -- Main State Machine (Comb)
   ----------------------------------------  	
    st_mach_controller : process(
+   	      falling_mvalid_event_r,
        	  rdy_fr_init_and_inbound_i,
        	  wait_fr_init_and_inbound_i,
        	  app_rdy_i,
@@ -410,14 +415,16 @@ ENTITY mem_st_machine_controller is
             	
             	decoder_st_d <= "000011"; --  Wait for FFT Completion
             	
-            	if ( (extend_fft_flow_tlast_r = '1' ) and -- fft_flow_tlast_i multi cycle(window)
-            		   (app_rdy_i = '1' ) and        -- signal 
+            	--if ( (extend_fft_flow_tlast_r = '1' ) and -- fft_flow_tlast_i multi cycle(window)
+            		if ( (falling_mvalid_event_r = '1') and
+            		   --(app_rdy_i = '1' ) and        -- signal 
             		   (app_wdf_rdy_i = '1') and
             		   (master_mode_i(0) = '0')           		   	 
             		 ) then
             		ns_controller        <= state_wr_1d_fwd_av_row;
-            	elsif( (extend_fft_flow_tlast_r = '1' ) and -- fft_flow_tlast_i multi cycle(window)
-            		   (app_rdy_i = '1' ) and        -- signal 
+            	--elsif( (extend_fft_flow_tlast_r = '1' ) and -- fft_flow_tlast_i multi cycle(window)
+            	  elsif( (falling_mvalid_event_r = '1') and
+            		   --(app_rdy_i = '1' ) and        -- signal 
             		   (app_wdf_rdy_i = '1') and
             		   (master_mode_i(0) = '1')  -- read         		   	 
             		 ) then
@@ -1306,14 +1313,36 @@ ENTITY mem_st_machine_controller is
   	  	extend_fft_flow_tlast_r <= extend_fft_flow_tlast_d;
   	  end if;
   end process extend_fft_flow_last_reg;	
-
-  ----------------------------------------
+  
+  -- Falling edge of mvalid
+  falling_edge_mvalid : process(clk_i,rst_i)
+  	begin
+  		if(rst_i = '1') then
+  			delay_mvalid_i <= '0';
+  		elsif(clk_i'event and clk_i = '1') then
+  			delay_mvalid_i <= mem_shared_in_ch_state_i;
+  		end if;
+  end process falling_edge_mvalid;
+  
+  falling_mvalid_event_d <= not(mem_shared_in_ch_state_i) and delay_mvalid_i;
+  
+  falling_edge_mvalid_reg : process(clk_i,rst_i)
+  	begin
+  		if(rst_i = '1')	then
+  			falling_mvalid_event_r <= '0';
+  	  elsif(clk_i'event and clk_i = '1') then
+  	  	falling_mvalid_event_r <= falling_mvalid_event_d;
+  	  end if;
+  end process falling_edge_mvalid_reg;
+  	
+  ----------------------------------------.
   -- Assignments
   ----------------------------------------
   --bp_d  <= std_logic_vector(to_unsigned(state_counter_1_r,bp_d'length));
   --bit_plane_int <= to_integer(unsigned(bit_planes_d ));
            	
   -- app interface to ddr controller
+  app_addr_o        <=    "000000000" & app_addr_r;
   app_cmd_o         <=          app_cmd_r;        --: out std_logic_vector(2 downto 0);
   app_en_o          <=          app_en_r;         --: out std_logic;
   app_wdf_end_o     <=          app_wdf_end_r;    --: out std_logic;
@@ -1326,6 +1355,7 @@ ENTITY mem_st_machine_controller is
      
   -- rd control to shared input memory
   mem_shared_in_enb_o      <=   mem_shared_in_enb_r;    --: out std_logic;
+  mem_shared_in_addb_o     <=   std_logic_vector(to_unsigned(state_counter_3_r,mem_shared_in_addb_o'length));
     
   -- mux/demux control to front and Backend modules  
   front_end_demux_fr_fista_o  <=  front_end_demux_fr_fista_r; --: out std_logic;
@@ -1335,11 +1365,11 @@ ENTITY mem_st_machine_controller is
   back_end_mux_to_front_end_o <=  back_end_mux_to_front_end_r; --: out std_logic;
     
   -- rd,wr control to F*(H) F(H) FIFO 
-  f_h_fifo_wr_en_o            <=  f_h_fifo_wr_en_r; --: out std_logic;
+  f_h_fifo_wr_en_o            <=  f_h_fifo_wr_en_r; --: out std_logic;.
   f_h_fifo_rd_en_o            <=  f_h_fifo_rd_en_r; --: out std_logic;
     
   -- rd,wr control to F(V) FIFO
-  f_v_fifo_wr_en_o            <=  f_v_fifo_wr_en_r; --: out std_logic;
+  f_v_fifo_wr_en_o            <=  f_v_fifo_wr_en_r; --: out std_logic;.
   f_v_fifo_rd_en_o            <=  f_v_fifo_rd_en_r; --: out std_logic;
     
   --  rd,wr control to Fdbk FIFO
@@ -1350,7 +1380,9 @@ ENTITY mem_st_machine_controller is
   app_wdf_mask_o  <= (others => '0');
        
   -- Output for mem_init
-  mem_init_start_o <= mem_init_start_r;     
+  mem_init_start_o <= mem_init_start_r; 
+  
+      
             	
   END architecture struct; 
     

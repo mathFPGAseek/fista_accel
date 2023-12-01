@@ -90,6 +90,7 @@ entity mem_controller is
     --mem_shared_in_ena_o       : out std_logic;
     --mem_shared_in_wea_o       : out std_logic_vector(0 downto 0);
     --mem_shared_in_addra_o     : out std_logic_vector(7 downto 0);
+    mem_shared_in_ch_state_i  : in std_logic;
     mem_shared_in_enb_o       : out std_logic;
     mem_shared_in_addb_o      : out std_logic_vector(7 downto 0);
     
@@ -138,7 +139,11 @@ entity mem_controller is
 end mem_controller;
 
 architecture struct of mem_controller is  
-  -- signals  
+  -- signals
+signal mem_shared_in_enb_int    : std_logic;
+signal mem_shared_in_addb_int  : std_logic_vector( 7 downto 0); 
+signal mem_shared_out_addb_int  : std_logic_vector( 7 downto 0); 
+	
 begin
   
   
@@ -179,9 +184,10 @@ begin
         -- mux control to ddr memory controller.      
         ddr_intf_mux_wr_sel_o                       => ddr_intf_mux_wr_sel_o, --: out std_logic_vector(1 downto 0);
         ddr_intf_demux_rd_sel_o                     => ddr_intf_demux_rd_sel_o, --: out std_logic_vector(2 downto 0);
-                                                  
-        mem_shared_in_enb_o                         => mem_shared_in_enb_o, --: out std_logic;
-        mem_shared_in_addb_o                        => mem_shared_in_addb_o, --: out std_logic_vector(7 downto 0);
+        
+        mem_shared_in_ch_state_i                    => mem_shared_in_ch_state_i,                                          
+        mem_shared_in_enb_o                         => mem_shared_in_enb_int, --: out std_logic;
+        mem_shared_in_addb_o                        => mem_shared_in_addb_int, --: out std_logic_vector(7 downto 0);
                                                
         -- mux control to front and Backend modules 
         front_end_demux_fr_fista_o                  => front_end_demux_fr_fista_o, --: out std_logic;
@@ -212,11 +218,29 @@ begin
         fista_accel_valid_rd_o                      => fista_accel_valid_rd_o--: out std_logic
     	                                              
     );
+    
+    -----------------------------------------
+    -- Address Generation for shared memory
+    -----------------------------------------	
+    U1 : entity work.blk_wr_addr_mem_gen_0 
+    PORT MAP( 
+    clka              =>   clk_i,--: in STD_LOGIC;
+    ena               =>   mem_shared_in_enb_int,--: in STD_LOGIC;
+    addra             =>   mem_shared_in_addb_int,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    douta             =>   mem_shared_out_addb_int--: out STD_LOGIC_VECTOR ( 7 downto 0 )
+    );
+
+
 
     -----------------------------------------
     -- FISTA State Machine Controller 
     -----------------------------------------	
    
+    -----------------------------------------
+    -- Assignments
+    -----------------------------------------.	 
+    mem_shared_in_enb_o   <= mem_shared_in_enb_int;
+    mem_shared_in_addb_o  <= mem_shared_out_addb_int;  
             	
 end  architecture struct; 
     

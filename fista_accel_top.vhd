@@ -144,7 +144,7 @@ begin
                                                     
         mem_init_start_o                            => dbg_mem_init_start_int,--: out std_logic;
                                                     
-        -- app interface to ddr controller             
+        -- app interface to ddr controller.             
         app_rdy_i           	                      => app_rdy_i,     --: in std_logic;
         app_wdf_rdy_i       	                      => app_wdf_rdy_i, --: in std_logic;
         app_rd_data_valid_i                         => app_rd_data_valid_i, --: in std_logic_vector( 0 downto 0);
@@ -160,7 +160,8 @@ begin
         -- mux control to ddr memory controller.      
         ddr_intf_mux_wr_sel_o                       => dbg_ddr_intf_mux_wr_sel_o, --: out std_logic_vector(1 downto 0);
         ddr_intf_demux_rd_sel_o                     => dbg_ddr_intf_demux_rd_sel_o, --: out std_logic_vector(2 downto 0);
-                                                 
+        
+        mem_shared_in_ch_state_i                    => dual_port_wr_int(0),                                         
         mem_shared_in_enb_o                         => dbg_mem_shared_in_enb_int, --: out std_logic;
         mem_shared_in_addb_o                        => dbg_mem_shared_in_addb_int, --: out std_logic_vector(7 downto 0);
                                                   
