@@ -103,8 +103,9 @@ signal enable_state_counter_2_r     : std_logic;
 --constant
 constant FFTSIZE256 : integer := 253; -- Make two less for pipeline latency to be applied
 constant DELAY256   : integer := 256;
-	
--- States
+constant DELAY512   : integer := 512;
+
+--- States
   
   type st_controller_t is (
     state_init,
@@ -174,7 +175,7 @@ BEGIN
             	
             	decoder_st_d <= "0100"; 
             	
-            	if  (s_axis_data_trdy_i = '1' ) then  -- This means ready ???.
+            	if  (s_axis_data_trdy_i = '1' ) then  -- This means ready ???
             		if ( state_counter_1_r < FFTSIZE256) then
             			 ns_controller <= state_proc_fft;  
             	  else
@@ -199,7 +200,8 @@ BEGIN
             	
             	decoder_st_d <= "0110";
             	
-            	if ( state_counter_2_r < DELAY256) then
+            	--if ( state_counter_2_r < DELAY256) then
+            	if ( state_counter_2_r < DELAY512) then
             			 ns_controller  <= state_read_done2;  
             	else
             		   ns_controller  <= state_read_done3;
