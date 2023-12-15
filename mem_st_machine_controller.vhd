@@ -507,26 +507,28 @@ ENTITY mem_st_machine_controller is
         ns_controller <=  state_rd_1d_fwd_av_col;	
         --!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       	--??? TEMPORARY_DEBUG
-      	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    
+      	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.    
             -- Stall States
             
             when state_stall_wr_1d_fwd_av_row => 
             	
             	decoder_st_d <= "100100"; -- Stall wr 1d fwd av
             	
-            	if( (state_counter_8_r >= COUNT_8 ) and
-            		  (state_counter_3_r = COUNT_253 ) ) then
+              if    ( (state_counter_8_r >= COUNT_8 ) and
+            		      (state_counter_3_r < COUNT_253  ) ) then
+            		 ns_controller <= state_wr_1d_fwd_av_row;           	
+            	elsif ( (state_counter_8_r >= COUNT_8 ) and
+            		      (state_counter_3_r = COUNT_253  ) ) then
             		 ns_controller <= state_extra_write_end_of_line_2;
               elsif ( (state_counter_8_r >= COUNT_8 ) and
-            		      ( (state_counter_3_r = COUNT_255 ) or
-            		      	(state_counter_3_r = COUNT_256 )  )  ) then
-              	ns_controller <= state_wait_for_fft;
-            	elsif ( (state_counter_8_r >= COUNT_8 ) and
-            		      (state_counter_3_r = COUNT_254 ) ) then
+            		      (state_counter_3_r = COUNT_254  ) ) then
             		 ns_controller <= state_extra_write_end_of_line_1;
-            	elsif ( (state_counter_8_r >= COUNT_8 ) and
-            		      (state_counter_3_r < COUNT_253 ) ) then
-            		 ns_controller <= state_wr_1d_fwd_av_row;
+              elsif ( (state_counter_8_r >= COUNT_8 ) and
+            		      (state_counter_3_r = COUNT_255  ) ) then
+              	ns_controller <= state_wr_1d_fwd_av_row;
+              elsif ( (state_counter_8_r >= COUNT_8 ) and
+            		      (state_counter_3_r = COUNT_256  ) ) then
+              	ns_controller <= state_wait_for_fft;
               else
               	ns_controller <=  state_stall_wr_1d_fwd_av_row;	
               end if;
