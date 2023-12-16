@@ -388,7 +388,10 @@ ENTITY mem_st_machine_controller is
   --constant FFT_IMAGE_SIZE  : integer := 254;
   constant COUNT_4         : integer := 4;
   constant COUNT_8         : integer := 8;
-    
+  
+  --KLUDGE 
+  constant MIN_ADDR        : std_logic_vector(19 downto 0) := "00000000000000000010"; 
+  signal app_addr_d_d      : std_logic_vector(19 downto 0);     
   BEGIN
   
   ----------------------------------------
@@ -914,7 +917,7 @@ ENTITY mem_st_machine_controller is
           
   -----------------------------------------
   -- Main State Machine (Reg) Mem & Control Signals
-  -----------------------------------------
+  -----------------------------------------.
 
     st_mach_controller_mem_and_control_registers : process( clk_i, rst_i )
       begin
@@ -1027,6 +1030,17 @@ ENTITY mem_st_machine_controller is
    end process st_mach_controller_mem_and_control_registers; 
    
   -----------------------------------------
+  -- Address Decoder KLUDGE logic
+  -----------------------------------------.
+  address_KLUDGE_adj_addr: process( app_addr_d) 
+  	begin
+  		if (app_addr_d >= MIN_ADDR ) then
+  			app_addr_d_d <= std_logic_vector(unsigned(app_addr_d) - unsigned(MIN_ADDR));
+  		else
+  			app_addr_d_d <= (others=> '0');
+  		end if;
+  end process address_KLUDGE_adj_addr;
+  -----------------------------------------
   -- Address Decoder
   -----------------------------------------.
   address_decoder: process( decoder_st_r,bank_addr_r,pipe1_addr_r,pipe2_addr_r,state_counter_4_r,
@@ -1095,7 +1109,8 @@ ENTITY mem_st_machine_controller is
       	    	bank_addr_r(3 downto 0)    <=	 bank_addr_d;
   		        pipe1_addr_r(15 downto 0)  <=	 pipe1_addr_d;  
   		        pipe2_addr_r(15 downto 0)  <=  pipe2_addr_d;
-  		        app_addr_r(19 downto 0)    <=  app_addr_d;   	    	
+  		        --app_addr_r(19 downto 0)    <=  app_addr_d;
+  		        app_addr_r(19 downto 0)    <=  app_addr_d_d;   	    	
       	    	
       	    end if;
       	    	

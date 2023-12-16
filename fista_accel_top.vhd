@@ -120,6 +120,8 @@ architecture struct of fista_accel_top is
   signal dbg_mem_shared_in_enb_int         : std_logic;
   signal dbg_mem_shared_in_addb_int        : std_logic_vector(7 downto 0);
   signal data_to_mem_intf_fr_mem_in_buffer : std_logic_vector(79 downto 0);
+  	
+  constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
 begin
   
   
@@ -195,8 +197,8 @@ begin
     	                                              
     );
     
- app_wdf_data_o <= (others=>'0');       --: out std_logic_vector(511 downto 0);
-    
+ --app_wdf_data_o <= (others=>'0');       --: out std_logic_vector(511 downto 0);.
+   app_wdf_data_o <= DATA_512_MINUS_80 & data_to_mem_intf_fr_mem_in_buffer;
     -----------------------------------------
     --  init_and_inbound flow
     -----------------------------------------	
@@ -293,6 +295,7 @@ begin
     u4 : entity work.mem_in_buffer_module 
     PORT MAP( 
     clk_i                     =>     clk_i,             --: in STD_LOGIC;
+    rst_i               	    =>     rst_i,--: in std_logic;
     ena                       =>     dual_port_wr_int(0),  --: in STD_LOGIC;
     wea                       =>     dual_port_wr_int,--: in STD_LOGIC_VECTOR ( 0 to 0 );
     addra                     =>     dual_port_addr_int(7 downto 0),--: in STD_LOGIC_VECTOR ( 7 downto 0 );
