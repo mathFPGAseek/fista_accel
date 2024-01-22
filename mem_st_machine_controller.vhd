@@ -1699,8 +1699,8 @@ ENTITY mem_st_machine_controller is
   app_en_o          <=          app_en_rrr;         --: out std_logic;
   app_wdf_end_o     <=          app_wdf_end_rrr;    --: out std_logic;
   --app_wdf_en_o      <=          app_wdf_en_r;     --: out std_logic;
-  --app_wdf_wren_o    <=          app_wdf_wren_rrr;   --: out std_logic_vector(2 downto 0);
-  app_wdf_wren_o    <=          app_wdf_wren_rr;
+  app_wdf_wren_o    <=          app_wdf_wren_rrr;   --: out std_logic_vector(2 downto 0);
+  --app_wdf_wren_o    <=          app_wdf_wren_rr;
     	
   --mux/demux control to ddr memory controller.
   ddr_intf_mux_wr_sel_o    <=    ddr_intf_mux_wr_sel_r;  --: out std_logic_vector(1 downto 0);
