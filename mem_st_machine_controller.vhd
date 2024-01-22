@@ -1053,8 +1053,8 @@ ENTITY mem_st_machine_controller is
   		
   		  bank_addr_d(3 downto 0)    <=	   "0000";   --upper Ping memory
   		  pipe1_addr_d(15 downto 0)  <=	   std_logic_vector(to_unsigned(state_counter_4_r,pipe1_addr_d'length)); --direct row addr; image counter
-  		  pipe2_addr_d(15 downto 0)  <=    (others=>'0');
-  		  app_addr_d(19 downto 0)    <=    bank_addr_r & pipe1_addr_r;
+  		  --pipe2_addr_d(15 downto 0)  <=    (others=>'0');
+  		  --app_addr_d(19 downto 0)    <=    bank_addr_r & pipe1_addr_r;
   		  	
   	
   	  when "000011" =>  -- Wait for FFT
@@ -1110,8 +1110,8 @@ ENTITY mem_st_machine_controller is
   		        pipe1_addr_r(15 downto 0)  <=	 pipe1_addr_d;  
   		        pipe2_addr_r(15 downto 0)  <=  pipe2_addr_d;
   		        --app_addr_r(19 downto 0)    <=  app_addr_d;
-  		        app_addr_r(19 downto 0)    <=  app_addr_d_d;   	    	
-      	    	
+  		        --app_addr_r(19 downto 0)    <=  app_addr_d_d;   	    	
+      	    	app_addr_r(19 downto 0)    <=  "0000" & pipe1_addr_r;
       	    end if;
       	    	
       	   
@@ -1367,6 +1367,7 @@ ENTITY mem_st_machine_controller is
  
   			clear_state_counter_6_d   <= '1';
   			enable_state_counter_6_d  <= '0';	
+  			
   			
   			clear_state_counter_7_d   <= '0';
   			enable_state_counter_7_d  <= '1';
@@ -1698,7 +1699,8 @@ ENTITY mem_st_machine_controller is
   app_en_o          <=          app_en_rrr;         --: out std_logic;
   app_wdf_end_o     <=          app_wdf_end_rrr;    --: out std_logic;
   --app_wdf_en_o      <=          app_wdf_en_r;     --: out std_logic;
-  app_wdf_wren_o    <=          app_wdf_wren_rrr;   --: out std_logic_vector(2 downto 0);
+  --app_wdf_wren_o    <=          app_wdf_wren_rrr;   --: out std_logic_vector(2 downto 0);
+  app_wdf_wren_o    <=          app_wdf_wren_rr;
     	
   --mux/demux control to ddr memory controller.
   ddr_intf_mux_wr_sel_o    <=    ddr_intf_mux_wr_sel_r;  --: out std_logic_vector(1 downto 0);

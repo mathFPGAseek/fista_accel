@@ -141,8 +141,9 @@ end mem_controller;
 architecture struct of mem_controller is  
   -- signals
 signal mem_shared_in_enb_int    : std_logic;
-signal mem_shared_in_addb_int  : std_logic_vector( 7 downto 0); 
+signal mem_shared_in_addb_int   : std_logic_vector( 7 downto 0); 
 signal mem_shared_out_addb_int  : std_logic_vector( 7 downto 0); 
+signal mem_shared_in_enb_int_r  : std_logic;
 	
 begin
   
@@ -222,16 +223,34 @@ begin
     -----------------------------------------
     -- Address Generation for shared memory
     -----------------------------------------	
-    U1 : entity work.blk_wr_addr_mem_gen_0 
+    --U1 : entity work.blk_wr_addr_mem_gen_0 
+    --PORT MAP( 
+    --clka              =>   clk_i,--: in STD_LOGIC;
+    --ena               =>   mem_shared_in_enb_int,--: in STD_LOGIC;
+    --addra             =>   mem_shared_in_addb_int,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    --douta             =>   mem_shared_out_addb_int--: out STD_LOGIC_VECTOR ( 7 downto 0 )
+    --);
+    U1 : entity work.blk_wr_addr_mem_gen_no_reg_0 
     PORT MAP( 
     clka              =>   clk_i,--: in STD_LOGIC;
     ena               =>   mem_shared_in_enb_int,--: in STD_LOGIC;
     addra             =>   mem_shared_in_addb_int,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
     douta             =>   mem_shared_out_addb_int--: out STD_LOGIC_VECTOR ( 7 downto 0 )
     );
-
-
-
+    
+    -----------------------------------------
+    -- Delay Memory Controller enable output
+    -----------------------------------------	
+    enable_delay_reg : process(clk_i, rst_i)
+    		begin
+    			if( rst_i = '1') then
+    				mem_shared_in_enb_int_r <= '0';
+    				
+    			elsif(clk_i'event and clk_i = '1') then
+    				mem_shared_in_enb_int_r <= mem_shared_in_enb_int;
+    			end if;
+    				
+    end process enable_delay_reg;	
     -----------------------------------------
     -- FISTA State Machine Controller 
     -----------------------------------------	
@@ -239,7 +258,7 @@ begin
     -----------------------------------------
     -- Assignments
     -----------------------------------------.	 
-    mem_shared_in_enb_o   <= mem_shared_in_enb_int;
+    mem_shared_in_enb_o   <= mem_shared_in_enb_int_r;
     mem_shared_in_addb_o  <= mem_shared_out_addb_int;  
             	
 end  architecture struct; 

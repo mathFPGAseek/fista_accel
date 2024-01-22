@@ -122,6 +122,7 @@ architecture struct of fista_accel_top is
   signal data_to_mem_intf_fr_mem_in_buffer : std_logic_vector(79 downto 0);
   	
   constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
+  constant ONE                             : natural := 1; -- for selecting  ONE = use debug
 begin
   
   
@@ -267,8 +268,8 @@ begin
     --  fft engine
     -----------------------------------------
     u3 : entity work.fft_engine_module 
---generic(
---	    generic_i  : in natural);
+    GENERIC MAP(
+	    g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
     PORT MAP (                      
                                     
 	  clk_i               	     =>    clk_i,--: in std_logic;

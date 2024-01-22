@@ -31,7 +31,20 @@ signal data_out_rr  : std_logic_vector( 79 downto 0);
 	
 begin
 	
-	U1 : entity work.blk_dual_mem_gen_0
+--U1 : entity work.blk_dual_mem_gen_0
+--PORT MAP( 
+--  clka      =>  clk_i,               --: in STD_LOGIC;.
+--  ena       =>  ena,                --: in STD_LOGIC;
+--  wea       =>  wea,                --: in STD_LOGIC_VECTOR ( 0 to 0 );
+--  addra     =>  addra,               --: in STD_LOGIC_VECTOR ( 7 downto 0 );
+--  dina      =>  dina,               --: in STD_LOGIC_VECTOR ( 79 downto 0 );
+--  clkb      =>  clk_i,               --: in STD_LOGIC;
+--  enb       =>  enb,               --: in STD_LOGIC;
+--  addrb     =>  addrb,                --: in STD_LOGIC_VECTOR ( 7 downto 0 );
+--  doutb     =>  doutb_int                --: out STD_LOGIC_VECTOR ( 79 downto 0 ).
+--);
+  
+  U1 : entity work.blk_dual_mem_gen_no_reg_0
   PORT MAP( 
     clka      =>  clk_i,               --: in STD_LOGIC;.
     ena       =>  ena,                --: in STD_LOGIC;
@@ -45,27 +58,28 @@ begin
   );
   
   
-  delay_data_out : process(clk_i,rst_i)
-  	begin
-  		if(rst_i = '1') then
-  			
-  			data_out_r  <= (others => '0');
-  			data_out_rr <= (others => '0');
-  				
-  		elsif(clk_i'event and clk_i = '1') then
-  			
-  			data_out_r  <= doutb_int;
-  			data_out_rr <= data_out_r;
-  			
-  	  end if;
-  	  	
-  	end process  delay_data_out;
-  			
+  
+  --delay_data_out : process(clk_i,rst_i)
+  --	begin
+  --		if(rst_i = '1') then
+  --			
+  --			data_out_r  <= (others => '0');
+  --			data_out_rr <= (others => '0');
+  --				
+  --		elsif(clk_i'event and clk_i = '1') then
+  --			
+  --			data_out_r  <= doutb_int;
+  --			data_out_rr <= data_out_r;
+  --			
+  --	  end if;
+  --	  	
+  --	end process  delay_data_out;
+  --			
   -----------------------------------------
   --  Assignments
   -----------------------------------------	
   			
-  doutb <= data_out_rr;
-  
+  --doutb <= data_out_rr;
+  doutb <=  doutb_int;
   
 end architecture stub;

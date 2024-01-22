@@ -31,8 +31,8 @@ use std.textio.all;
 use ieee.std_logic_textio.all;
 
 entity fft_engine_module is
---generic(
---	    generic_i  : in natural);
+generic(
+	     g_USE_DEBUG_i  : in natural := 1);
     port (
 
 	  clk_i               	         : in std_logic;
@@ -90,6 +90,14 @@ signal fft_input_data           : std_logic_vector(79 downto 0);
 
 signal state_counter_1_r            : integer;
 
+-------------------------------------------------
+-- For Debug  Only
+-------------------------------------------------
+constant ADDR_WIDTH : integer := 8;
+
+signal debug_dual_port_int      : std_logic_vector(79 downto 0);
+signal debug_dual_port_wr_r     : std_logic;
+signal debug_dual_port_addr_r   : std_logic_vector(16 downto 0);
 
 -------------------------------------------------
 -- For Verification Only
@@ -295,15 +303,56 @@ begin
           state_counter_1_r       <=  state_counter_1_r + 1;
         end if;
       end if;
-  end process state_counter_1;	
+  end process state_counter_1;
+  
+--------------------------------------------------
+-- For debug                       For debug
+-- For debug                       For debug
+-- For debug                       For debug
+--
+--        Generate data to debug wr ddr
+-- For debug                       For debug
+-- For debug                       For debug
+-- For debug                       For debug
+--
+--------------------------------------------------
+g_USE_U0_DEBUG : if g_USE_DEBUG_i = 1 generate 
+		u0_dbg : entity work.blk_dbg_wr_mem_gen_0 
+		PORT MAP(  
+    clka    => clk_i,                      --: in STD_LOGIC;
+    ena     => m_axis_data_tvalid_int,     --: in STD_LOGIC;
+    addra   => std_logic_vector(to_unsigned(state_counter_1_r,ADDR_WIDTH)), --: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    douta   => debug_dual_port_int        --: out STD_LOGIC_VECTOR ( 79 downto 0 )
+    );
     
-    -----------------------------------------
-    --  Assignments
-    -----------------------------------------	
+-----------------------------------------
+--  delay signals
+-----------------------------------------	    
+delay_dual_port_control_reg : process(clk_i,rst_i)
+	begin
+		if(rst_i = '1') then
+			 debug_dual_port_addr_r <= (others => '0');
+			 debug_dual_port_wr_r   <= '0';
+		elsif(clk_i'event and clk_i = '1') then
+			 debug_dual_port_addr_r <= std_logic_vector(to_unsigned(state_counter_1_r,dual_port_addr_o'length)); 
+			 debug_dual_port_wr_r   <= m_axis_data_tvalid_int;			 
+	  end if;
+end process delay_dual_port_control_reg;
+    
+dual_port_wr_o       <=  debug_dual_port_wr_r;     
+dual_port_addr_o     <=  debug_dual_port_addr_r;         
+dual_port_data_o     <=  debug_dual_port_int; 
+
+end generate g_USE_U0_DEBUG;
+    
+-----------------------------------------
+--  Assignments
+-----------------------------------------	
+g_NO_U0_DEBUG : if g_USE_DEBUG_i = 0 generate -- default condition
     dual_port_wr_o       <=  m_axis_data_tvalid_int;     
     dual_port_addr_o     <=  std_logic_vector(to_unsigned(state_counter_1_r,dual_port_addr_o'length));         
     dual_port_data_o     <=  dual_port_data_int; 
-    
+end generate g_NO_U0_DEBUG;    
     fft_rdy_o            <=  fft_rdy_int;
      
     stall_warning_o      <=  stall_warning_int;
