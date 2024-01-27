@@ -22,77 +22,7 @@
 -- Initial Date: 7/8/23
 -- Descr: Memory Controller / Fista Accel.
 -- Modes:
--- 1. Init
--- 2. Write in B
---
--- 3. Wait for FFT completion 
--- 4. Write in 1-D FWD AV Row ( Step 0)  -- Start of A Calculation --
---
--- 5. Read out 1-D FWD AV Col ( Step 1)
--- 6. Wait for FFT completion
--- 7. Write in 2-D FWD AV Col ( Step 2)
---
--- 8.  Read out 2-D FWD AV Row F(Vk)(Step 3)
--- 9.  Read out 2-D FWD AV Row F(H)
--- 10. Wait for FFT completion
--- 11. Write in 1-D INV AV Row ( Step 4)
---
--- 12. Read out 1-D INV AV Col F(Vk)(Step 5)
--- 13. Wait for FFT completion
--- 14. Write in 2-D INV AV Col ( Step 6)
---
--- 15. Read out 2-D INV AV Row F(Vk)(Step 7)
--- 16. Read out 2-D InV AV Row B
--- 17. Wait for FFT completion
--- 18. Write in 1-D FWD AV-B Row ( Step 8) -- Start of A^H Calculation --
---
--- 19. Read out 1-D FWD AV-B Col ( Step 9)
--- 20. Wait for FFT completion
--- 21. Write in 2-D FWD AV-B Col ( Step 10)
---
--- 22. Read out 2-D FWD AV-B Row F(Vk)(Step 11)
--- 23. Read out 2-D FWD AV-B Row F*(H)
--- 24. Wait for FFT completion
--- 25. Write in 1-D INV AV-B Row ( Step 12)
---
--- 26. Read out 1-D INV AV-B Col F(Vk)(Step 13)
--- 27. Wait for FFT completion
--- 28. Write in 2-D INV AV-B Col ( Step 14)
---
--- 29. Read out 2-D INV AV-B Row F(Vk)(Step 15)
--- 30. Wait for FFT completion 
---
--- 31. -- Return to ( Step 0) with Vk+1
 
--- Stall Modes
--- 4A.  Stall Write in 1-D FWD AV Row ( Step 0)  -- Start of A Calculation --
---
--- 5A.  Stall Read out 1-D FWD AV Col ( Step 1)
--- 7A.  Stall Write in 2-D FWD AV Col ( Step 2)
---
--- 8A.  Stall Read out 2-D FWD AV Row F(Vk)(Step 3)
--- 9A.  Stall Read out 2-D FWD AV Row F(H)
--- 11A. Stall Write in 1-D INV AV Row ( Step 4)
---
--- 12A. Stall Read out 1-D INV AV Col F(Vk)(Step 5)
--- 14A. Stall Write in 2-D INV AV Col ( Step 6)
---
--- 15A. Stall Read out 2-D INV AV Row F(Vk)(Step 7)
--- 16A. Stall Read out 2-D InV AV Row B
--- 18A. Stall Write in 1-D FWD AV-B Row ( Step 8) -- Start of A^H Calculation --
---
--- 19A. Stall Read out 1-D FWD AV-B Col ( Step 9)
--- 21A. Stall Write in 2-D FWD AV-B Col ( Step 10)
---
--- 22A. Stall Read out 2-D FWD AV-B Row F(Vk)(Step 11)
--- 23A. Stall Read out 2-D FWD AV-B Row F*(H)
--- 25A. Stall Write in 1-D INV AV-B Row ( Step 12)
---
--- 26A. Stall Read out 1-D INV AV-B Col F(Vk)(Step 13)
--- 28A. Stall Write in 2-D INV AV-B Col ( Step 14)
---
--- 29A. Stall Read out 2-D INV AV-B Row F(Vk)(Step 15)
- 
 -- master_mode_i:
 -- Bit 4: unused
 -- Bit 3: A=0/AH=1
@@ -123,25 +53,6 @@ ENTITY mem_st_machine_controller is
     
     mem_init_start_o               : out std_logic;
     
-    -- input fifo control ??? Move to another state machine controller in mem controller
-    --inbound_flow_fifo_wr_en_o      : out std_logic;
-    --inbound_flow_fifo_rd_en_o      : out std_logic;
-    --inbound_flow_fifo_full_i       : in std_logic;
-    --inbound_flow_fifo_empty_i      : in std_logic;
-    
-    -- rd control to init memory ??? Move to init st and mem module
-    ----------inbound_flow_mem_init_ena_o       : out std_logic;
-    --inbound_flow_mem_init_wea_o       : out std_logic_vector(0 downto 0);
-    ----------inbound_flow_mem_init_addra_o     : out std_logic_vector(15 downto 0);
-    --inbound_flow_mem_init_enb_o       : out std_logic;
-    --inbound_flow_mem_init_addb_o      : out std_logic_vector(7 downto 0);
-    	
-    -- rd control to external memory "B"  ??? Move to another state machine controller in mem controller
-    ----------inbound_flow_mem_ext_ena_o       : out std_logic;
-    --inbound_flow_mem_ext_wea_o       : out std_logic_vector(0 downto 0);
-    ----------inbound_flow_mem_ext_addra_o     : out std_logic_vector(7 downto 0);
-    --inbound_flow_mem_ext_enb_o       : out std_logic;
-    --inbound_flow_mem_ext_addb_o      : out std_logic_vector(7 downto 0);
     
     -- app interface to ddr controller
     app_rdy_i           	: in std_logic;
@@ -244,6 +155,12 @@ ENTITY mem_st_machine_controller is
   signal ddr_intf_demux_rd_sel_d  : std_logic_vector(2 downto 0);
   signal ddr_intf_mux_wr_sel_r    : std_logic_vector(1 downto 0);
   signal ddr_intf_demux_rd_sel_r  : std_logic_vector(2 downto 0);
+  	
+  -- rd control to ROM ( rd ddr addr for column)
+  signal mem_rd_addr_fr_rom_for_ddr_col_rd_in_en_d   : std_logic;
+  signal mem_rd_addr_fr_rom_for_ddr_col_rd_in_en_r   : std_logic;
+  --signal mem_rd_addr_fr_rom_for_ddr_col_rd_in_addr_d : std_logic;
+  -signal mem_rd_addr_fr_rom_for_ddr_col_rd_in_addr_r : std_logic;
      
   -- rd control to shared input memory
   signal mem_shared_in_enb_d      : std_logic;
@@ -494,23 +411,9 @@ ENTITY mem_st_machine_controller is
             when state_rd_1d_fwd_av_col  => 
             	
             	decoder_st_d <= "000101"; -- Read out 1-D FWD AV Col
-        --!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      	--??? TEMPORARY_DEBUG
-      	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!        	
-        --    	if ( (app_rdy_i = '0' ) or
-        --    		   (app_wdf_rdy_i = '0' )  ) then
-        --    		 ns_controller <= state_stall_rd_1d_fwd_av_col;
-        --      --elsif(state_counter_5_r >= FFT_IMAGE_SIZE ) -- complete one FFT read
-        --      --	 ns_controller <= state_wait_for_fft;  -- ??? incorrect
-        --      elsif(state_counter_6_r >= IMAGE256X256 ) then -- complete image
-        --      	ns_controller <=  state_DEBUG_STOP;
-        --      else
-        --      	ns_controller <=  state_rd_1d_fwd_av_col;	
-        --      end if;
-        ns_controller <=  state_rd_1d_fwd_av_col;	
-        --!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      	--??? TEMPORARY_DEBUG
-      	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.    
+
+              ns_controller <=  state_rd_1d_fwd_av_col;	
+  
             -- Stall States
             
             when state_stall_wr_1d_fwd_av_row => 
@@ -605,9 +508,7 @@ ENTITY mem_st_machine_controller is
       
      
       when "000010" => -- Write in B
-      	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      	--??? TEMPORARY_DEBUG
-      	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!.
+
       	 	-- app interface to ddr controller
         app_cmd_d         <=          "000"; --Wr B Mem      --: out std_logic_vector(2 downto 0);
         --app_en_d          <=          '1';   --Wr B Mem      --: out std_logic;
@@ -618,9 +519,7 @@ ENTITY mem_st_machine_controller is
         app_wdf_en_d      <=          '0';   --Wr B Mem      --: out std_logic;
         --app_wdf_wren_d    <=          '1';   --Wr B Mem      --: out std_logic_vector(2 downto 0);
         app_wdf_wren_d    <=          '0';   --Wr B Mem      --: out std_logic_vector(2 downto 0);
-      	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      	--??? TEMPORARY_DEBUG
-      	--!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!    	
+   	
         -- mux/demux control to ddr memory controller.
         ddr_intf_mux_wr_sel_d    <=    "00";  -- Wr B mem    --"Don't Care' --: out std_logic_vector(1 downto 0);
         ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care' --: out std_logic_vector(2 downto 0);

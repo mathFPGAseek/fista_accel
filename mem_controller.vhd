@@ -221,7 +221,7 @@ begin
     );
     
     -----------------------------------------
-    -- Address Generation for shared memory
+    -- Address Generation for shared memory : To write to DDR
     -----------------------------------------	
     --U1 : entity work.blk_wr_addr_mem_gen_0 
     --PORT MAP( 
@@ -239,8 +239,18 @@ begin
     );
     
     -----------------------------------------
+    -- Address Generation for shared memory : To write to DDR
+    -----------------------------------------	 
+    --U2: entity work.blk_rd_addr_mem_gen_no_reg_0
+    --PORT MAP ( 
+    --clka    =>     clk_i, --: in STD_LOGIC;
+    --ena     =>            --: in STD_LOGIC;
+    --addra   =>            --: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    --douta   =>            --: out STD_LOGIC_VECTOR ( 15 downto 0 )
+  --);
+    -----------------------------------------
     -- Delay Memory Controller enable output
-    -----------------------------------------	
+    -----------------------------------------.	
     enable_delay_reg : process(clk_i, rst_i)
     		begin
     			if( rst_i = '1') then
