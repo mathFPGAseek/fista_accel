@@ -160,7 +160,7 @@ ENTITY mem_st_machine_controller is
   signal mem_rd_addr_fr_rom_for_ddr_col_rd_in_en_d   : std_logic;
   signal mem_rd_addr_fr_rom_for_ddr_col_rd_in_en_r   : std_logic;
   --signal mem_rd_addr_fr_rom_for_ddr_col_rd_in_addr_d : std_logic;
-  -signal mem_rd_addr_fr_rom_for_ddr_col_rd_in_addr_r : std_logic;
+  --signal mem_rd_addr_fr_rom_for_ddr_col_rd_in_addr_r : std_logic;
      
   -- rd control to shared input memory
   signal mem_shared_in_enb_d      : std_logic;
@@ -275,16 +275,21 @@ ENTITY mem_st_machine_controller is
   type st_controller_t is (
     state_init,
     state_write_in_b,
+    
+    -- Sub State Type I: Init Row Wr
     state_wait_for_fft,
     state_wr_1d_fwd_av_row,
-    state_rd_1d_fwd_av_col,
-    -- stall states
+    
+    -- stall states Type I
     state_stall_wr_1d_fwd_av_row,
-    state_stall_rd_1d_fwd_av_col,
-
-    -- kludge state to write out last samples of a fft line
     state_extra_write_end_of_line_1,
     state_extra_write_end_of_line_2,
+  
+    -- Sub State Type II: Col Rd, Col Wr w/ H for A and H* for A*
+    state_rd_1d_fwd_av_col,
+
+    -- stall sub state Type : II
+    state_stall_rd_1d_fwd_av_col,    -- kludge state to write out last samples of a fft line
     
     -- debug state
     state_DEBUG_STOP
@@ -362,6 +367,10 @@ ENTITY mem_st_machine_controller is
             	else 
             		ns_controller        <= state_write_in_b; 
             	end if;
+     
+                           ----------------------------------------
+                           -- Sub State I Init 1D FFT            --
+                           ----------------------------------------
             	
             	
             when state_wait_for_fft =>
@@ -407,14 +416,9 @@ ENTITY mem_st_machine_controller is
               	  ns_controller <=  state_wr_1d_fwd_av_row;	
                 end if;
             	
-            	
-            when state_rd_1d_fwd_av_col  => 
-            	
-            	decoder_st_d <= "000101"; -- Read out 1-D FWD AV Col
 
-              ns_controller <=  state_rd_1d_fwd_av_col;	
   
-            -- Stall States
+            -- Stall States for Sub state I
             
             when state_stall_wr_1d_fwd_av_row => 
             	
@@ -449,6 +453,36 @@ ENTITY mem_st_machine_controller is
             	decoder_st_d <= "100110";
             	
             	ns_controller <=  state_extra_write_end_of_line_1;	
+            	
+                           ----------------------------------------
+                           -- Sub State II or IV 2D FFT or IFFT  --
+                           ----------------------------------------           	
+            	
+            	            	
+            when state_rd_1d_fwd_av_col  => 
+            	
+            	decoder_st_d <= "000101"; -- Read out 1-D FWD AV Col
+
+              ns_controller <=  state_rd_1d_fwd_av_col;	
+  
+                           ----------------------------------------
+                           -- Sub State III 1D IFFT              --
+                           ---------------------------------------- 
+                           
+                           
+                           
+                           ----------------------------------------
+                           -- Sub State V Thresholding           --
+                           ----------------------------------------
+                           
+                           
+                           
+                                             
+                                                      
+                           
+                           ----------------------------------------
+                           -- Sub State VI Update                --
+                           ----------------------------------------                                           
               
             when state_DEBUG_STOP => 
             	
