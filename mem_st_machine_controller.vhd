@@ -29,6 +29,33 @@
 -- Bit 2: 1D=0/2D=1
 -- Bit 1: FWD=0/INV=1
 -- Bit 0: WR=0/RD=1
+
+-- Notes after 2/6/24
+-- add counter 9 states --X
+-- start to add logic for column read
+-- also need to add ROM for column
+-- For 2/9/24
+-- Add new states -X
+-- Make sure you understand that new fft wait goes to a write state
+-- and it is that write state that goes back to col rd
+-- For 2/10/24
+-- Add decodes for new states
+-- Need to construct intf to addr ROM for DDR
+-- The above includes adding new signals
+-- Update all states with these new signals if needed
+-- Update addr logic that uses counters
+-- For 2/13/24 (done))
+-- Make two new col rd states
+-- Try to combine extra with  ?, probably
+-- Do I want to make new count staes for rd, probably
+-- But no new count staes for rd extra
+-- on 2/13/24 Added states for rd col
+-- for decoding both counter and control
+-- For 2/14/24 
+-- work on 2/10/24 stuff
+-- Before doing 2/14/24 -X
+-- debug why write row works, when no addr assigned in
+-- address decoder state
 ------------------------------------------------
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
@@ -234,6 +261,7 @@ ENTITY mem_st_machine_controller is
   signal state_counter_6_r           : integer;
   signal state_counter_7_r           : integer;
   signal state_counter_8_r           : integer;
+  signal state_counter_9_r           : integer;
   
   signal clear_state_counter_1_d     : std_logic; 
   signal clear_state_counter_1_r     : std_logic;
@@ -251,6 +279,8 @@ ENTITY mem_st_machine_controller is
   signal clear_state_counter_7_r     : std_logic;
   signal clear_state_counter_8_d     : std_logic;
   signal clear_state_counter_8_r     : std_logic;
+  signal clear_state_counter_9_d     : std_logic;
+  signal clear_state_counter_9_r     : std_logic;
   
   signal enable_state_counter_1_d     : std_logic; 
   signal enable_state_counter_1_r     : std_logic;
@@ -268,6 +298,8 @@ ENTITY mem_st_machine_controller is
   signal enable_state_counter_7_r     : std_logic;
   signal enable_state_counter_8_d     : std_logic;
   signal enable_state_counter_8_r     : std_logic;
+  signal enable_state_counter_9_d     : std_logic;
+  signal enable_state_counter_9_r     : std_logic;
    
    
   -- States
@@ -286,13 +318,18 @@ ENTITY mem_st_machine_controller is
     state_extra_write_end_of_line_2,
   
     -- Sub State Type II: Col Rd, Col Wr w/ H for A and H* for A*
-    state_rd_1d_fwd_av_col,
+    state_wait_for_fft_rd_2d_col,
+    state_rd_2d_col,
 
     -- stall sub state Type : II
-    state_stall_rd_1d_fwd_av_col,    -- kludge state to write out last samples of a fft line
-    
+    state_stall_rd_2d_col,    -- kludge state to write out last samples of a fft line
+    state_extra_rd_end_of_line_1,
+    state_extra_rd_end_of_line_2,
     -- debug state
-    state_DEBUG_STOP
+    state_DEBUG_STOP,
+    
+    -- reset
+    state_turnaround
   );
   
   signal ns_controller : st_controller_t;
@@ -310,6 +347,8 @@ ENTITY mem_st_machine_controller is
   --constant FFT_IMAGE_SIZE  : integer := 254;
   constant COUNT_4         : integer := 4;
   constant COUNT_8         : integer := 8;
+  constant COUNT_16        : integer := 16;
+  constant COUNT_32        : integer := 32;
   
   --KLUDGE 
   constant MIN_ADDR        : std_logic_vector(19 downto 0) := "00000000000000000010"; 
@@ -332,6 +371,7 @@ ENTITY mem_st_machine_controller is
        	  state_counter_6_r,
        	  state_counter_7_r,
        	  state_counter_8_r,
+       	  state_counter_9_r,
        	  ps_controller
        ) begin
        	
@@ -411,7 +451,9 @@ ENTITY mem_st_machine_controller is
                 elsif(state_counter_3_r >= FFT_IMAGE_SIZE  ) then -- complete one FFT write
               	   ns_controller <= state_wait_for_fft;
                 elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
-              	  ns_controller <=  state_rd_1d_fwd_av_col;
+              	  --ns_controller <=  state_rd_1d_fwd_av_col;
+              	    ns_controller <= state_DEBUG_STOP;
+              	  --ns_controller <= state_turnaround;
                 else
               	  ns_controller <=  state_wr_1d_fwd_av_row;	
                 end if;
@@ -459,13 +501,63 @@ ENTITY mem_st_machine_controller is
                            ----------------------------------------           	
             	
             	            	
-            when state_rd_1d_fwd_av_col  => 
+            when state_rd_2d_col  => -- FWD or INV / A or AH Col Rd
             	
             	decoder_st_d <= "00100010"; -- Read out 1-D FWD AV Col
 
-              ns_controller <=  state_rd_1d_fwd_av_col;	
+              if ( (app_rdy_i = '0' )  or (state_counter_7_r >= COUNT_4 )	  ) then
+            		   ns_controller <= state_stall_rd_2d_col;
+              elsif(state_counter_3_r >= FFT_IMAGE_SIZE  ) then -- complete one FFT write
+              	   ns_controller <= state_wait_for_fft_rd_2d_col;
+              elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
+              	  --ns_controller <= state_turnaround;
+              	   ns_controller <= state_DEBUG_STOP;
+              else
+              	  ns_controller <=  state_rd_2d_col;	
+              end if;
+              	
+            -- Stall States for Sub state II
+            
+            when state_stall_rd_2d_col => 
+            	
+            	decoder_st_d <= "00100011"; -- Stall col rd
+            	
+              if    ( (state_counter_8_r >= COUNT_8 ) and
+            		      (state_counter_3_r < COUNT_253  ) ) then
+            		 ns_controller <= state_rd_2d_col;           	
+            	elsif ( (state_counter_8_r >= COUNT_8 ) and
+            		      (state_counter_3_r = COUNT_253  ) ) then
+            		 ns_controller <= state_extra_rd_end_of_line_2;
+              elsif ( (state_counter_8_r >= COUNT_8 ) and
+            		      (state_counter_3_r = COUNT_254  ) ) then
+            		 ns_controller <= state_extra_rd_end_of_line_1;
+              elsif ( (state_counter_8_r >= COUNT_8 ) and
+            		      (state_counter_3_r = COUNT_255  ) ) then
+              	ns_controller <= state_rd_2d_col;
+              elsif ( (state_counter_8_r >= COUNT_8 ) and
+            		      (state_counter_3_r = COUNT_256  ) ) then
+              	ns_controller <= state_wait_for_fft_rd_2d_col;
+              else
+              	ns_controller <=  state_stall_rd_2d_col;	
+              end if; 
+              	
+                          -- extra write states
+            when state_extra_rd_end_of_line_1 =>
+            	--decoder_st_d <= "00100100";
+            	   decoder_st_d <= "00100010"; -- same state as col rd 
+            	                                -- Note: Use for 
+                                              -- counter decodes 
+                                              -- control decodes
+            	ns_controller <=  state_rd_2d_col;	
+            	
+            when state_extra_rd_end_of_line_2 =>
+            	--decoder_st_d <= "00100101";
+            	  decoder_st_d <= "00100010";
+            	
+            	ns_controller <=  state_extra_rd_end_of_line_1;
+              
   
-                           ----------------------------------------
+                           ----------------------------------------.
                            -- Sub State III 1D IFFT              --
                            ---------------------------------------- 
                            
@@ -482,7 +574,17 @@ ENTITY mem_st_machine_controller is
                            
                            ----------------------------------------
                            -- Sub State VI Update                --
-                           ----------------------------------------                                           
+                           ----------------------------------------.  
+           when state_turnaround =>
+            	decoder_st_d <= "11111110";                            
+            	
+            	if (state_counter_9_r >= COUNT_32 ) then 
+            		ns_controller <=  state_rd_2d_col;	
+            		
+            	else
+            		ns_controller <=  state_turnaround;
+            		
+            	end if;                                      
               
             when state_DEBUG_STOP => 
             	
@@ -808,7 +910,7 @@ ENTITY mem_st_machine_controller is
       when "00100011" => -- Stall   Read out 1-D FWD AV Col ( Step 1)
       	  			
   	  	-- app interface to ddr controller
-        app_cmd_d         <=          "000"; --" Don't Care"    --: out std_logic_vector(2 downto 0);
+        app_cmd_d         <=          "001"; --" Don't Care"    --: out std_logic_vector(2 downto 0);
         app_en_d          <=          '0';   --No wr/rd         --: out std_logic;
         app_wdf_end_d     <=          '0';   --"Don't Care'     --: out std_logic;
         app_wdf_en_d      <=          '0';   --"Don't Care'     --: out std_logic;
@@ -1095,7 +1197,9 @@ ENTITY mem_st_machine_controller is
   			clear_state_counter_8_d   <= '1';
   		--	enable_state_counter_8_d  <= '0';	
   		
-  			
+  		-- Counter to stay in turnaround
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';		
   			
   	  when "00000010" => -- Write in B
   			
@@ -1119,7 +1223,10 @@ ENTITY mem_st_machine_controller is
   			enable_state_counter_7_d  <= '0';	
   			
   			clear_state_counter_8_d   <= '1';
-  			--enable_state_counter_8_d  <= '0';	
+  			--enable_state_counter_8_d  <= '0';
+  			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';	
   			
   		
   		when "00010001" =>  -- Wait for FFT
@@ -1145,6 +1252,9 @@ ENTITY mem_st_machine_controller is
   			clear_state_counter_8_d   <= '1';
   			--enable_state_counter_8_d  <= '0';
   			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';
+  			
   		when "00010010" => -- write 1-D FWD AV Row
   			
   			clear_state_counter_1_d   <= '1';
@@ -1168,6 +1278,9 @@ ENTITY mem_st_machine_controller is
   			
   			clear_state_counter_8_d   <= '1';
   			--enable_state_counter_8_d  <= '0';
+  			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';
   				  	
   			
   	  -- Stall States
@@ -1195,6 +1308,9 @@ ENTITY mem_st_machine_controller is
   			clear_state_counter_8_d   <= '0';
   			--enable_state_counter_8_d  <= '1';
   			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';
+  			
   			
   		 when "00010100" =>  -- extra write state 1
   		 		
@@ -1220,6 +1336,9 @@ ENTITY mem_st_machine_controller is
   			clear_state_counter_8_d   <= '1';
   			--enable_state_counter_8_d  <= '0';
   			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';
+  			
    		 when "00010101" =>  -- extra write state 2
   		 		
   			clear_state_counter_1_d   <= '1';
@@ -1243,53 +1362,64 @@ ENTITY mem_st_machine_controller is
   			enable_state_counter_7_d  <= '1';
   			
   			clear_state_counter_8_d   <= '1';
-  			--enable_state_counter_8_d  <= '0'; 		
+  			--enable_state_counter_8_d  <= '0';
+  			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0'; 		
   	   			
   	  when "00100010" => -- read 1-D FWD AV col
   	  	
   	  	clear_state_counter_1_d   <= '1';
   			enable_state_counter_1_d  <= '0';
   			
-  			clear_state_counter_3_d   <= '1';
-  			enable_state_counter_3_d  <= '0';
+  			clear_state_counter_3_d   <= '0';
+  			enable_state_counter_3_d  <= '1';
   			
-  			clear_state_counter_4_d   <= '1';
-  			enable_state_counter_4_d  <= '0';
+  			clear_state_counter_4_d   <= '0';
+  			enable_state_counter_4_d  <= '1';
   			
-  			clear_state_counter_5_d   <= '1';  --clear counter 5
+  			clear_state_counter_5_d   <= '1';  
   			enable_state_counter_5_d  <= '0'; 
  
-  			clear_state_counter_6_d   <= '0';
-  			enable_state_counter_6_d  <= '1';	--enable counter 6
+  			clear_state_counter_6_d   <= '1';
+  			enable_state_counter_6_d  <= '0';	
   			
-  			clear_state_counter_7_d   <= '1';
-  			enable_state_counter_7_d  <= '0';
+  			clear_state_counter_7_d   <= '0';
+  			enable_state_counter_7_d  <= '1';
   			
   			clear_state_counter_8_d   <= '1';
-  			--enable_state_counter_8_d  <= '0';		
+  			--enable_state_counter_8_d  <= '0';
+  			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';
+  					
   	    			
   		 when "00100011" => -- Stall   Read out 1-D FWD AV Col ( Step 1)
   		 	
   		 	clear_state_counter_1_d   <= '1';
   			enable_state_counter_1_d  <= '0';
   			
-  			clear_state_counter_3_d   <= '1';
+  			clear_state_counter_3_d   <= '0';
   			enable_state_counter_3_d  <= '0';
   			
-  			clear_state_counter_4_d   <= '1'; 
+  			clear_state_counter_4_d   <= '0'; 
   			enable_state_counter_4_d  <= '0';
   			
   			clear_state_counter_5_d   <= '1'; 
   			enable_state_counter_5_d  <= '0'; 
  
-  			clear_state_counter_6_d   <= '0';  -- NOP counter 6
+  			clear_state_counter_6_d   <= '1';  
   			enable_state_counter_6_d  <= '0';
   			
   			clear_state_counter_7_d   <= '1';
   			enable_state_counter_7_d  <= '0';	
   			
-  			clear_state_counter_8_d   <= '1';
-  			--enable_state_counter_8_d  <= '0';			
+  			clear_state_counter_8_d   <= '0';
+  			--enable_state_counter_8_d  <= '0';
+  			
+  			  			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';			
   		  	  	
   	  when "11111111" => -- state debug stop
   	  	
@@ -1312,7 +1442,37 @@ ENTITY mem_st_machine_controller is
   			enable_state_counter_7_d  <= '0';
   			
   			clear_state_counter_8_d   <= '1';
-  			--enable_state_counter_8_d  <= '0';		  
+  			--enable_state_counter_8_d  <= '0';			
+  			  			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';	
+  			
+  		  		  	  	
+  	  when "11111110" => -- state turnaround
+  	  	
+  	  	clear_state_counter_1_d   <= '1';
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '1';
+  			enable_state_counter_3_d  <= '0';
+  			
+  			clear_state_counter_4_d   <= '1';
+  			enable_state_counter_4_d  <= '0';
+  			
+  			clear_state_counter_5_d   <= '1'; 
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '1';
+  			enable_state_counter_6_d  <= '0';	
+  			
+  	    clear_state_counter_7_d   <= '1';
+		    enable_state_counter_7_d  <= '0';
+  			
+  			clear_state_counter_8_d   <= '1';
+  			--enable_state_counter_8_d  <= '0';				
+  			  			
+  			clear_state_counter_9_d   <= '0';
+  			enable_state_counter_9_d  <= '1';	  
   		
   		when others =>
   			 ---??? Need to add
@@ -1335,7 +1495,10 @@ ENTITY mem_st_machine_controller is
   			enable_state_counter_7_d  <= '0';
   			
   			clear_state_counter_8_d   <= '1';
-  			--enable_state_counter_8_d  <= '0';
+  			--enable_state_counter_8_d  <= '0';			
+  			  			
+  			clear_state_counter_9_d   <= '1';
+  			enable_state_counter_9_d  <= '0';
   			 
   	end case;
   end process st_mach_controller_counters_decoder;
@@ -1371,8 +1534,11 @@ ENTITY mem_st_machine_controller is
               clear_state_counter_7_r         <= '1';
   			      enable_state_counter_7_r        <= '0';
   			      
-  			      clear_state_counter_8_r         <= '1';
-  			      enable_state_counter_8_r        <= '0';
+		   			  clear_state_counter_8_r         <= '1';
+  	          enable_state_counter_8_r        <= '0';
+  	          
+  	          clear_state_counter_9_r         <= '1';
+  	          enable_state_counter_9_r        <= '0';
               
       	    elsif(clk_i'event and clk_i = '1') then
       	    	
@@ -1406,7 +1572,11 @@ ENTITY mem_st_machine_controller is
               
               -- Counter to stay in write stall state			
   			      clear_state_counter_8_r   <= clear_state_counter_8_d;
-  			      enable_state_counter_8_r  <= enable_state_counter_8_d;	
+  			      enable_state_counter_8_r  <= enable_state_counter_8_d;
+  			      
+  			      -- Counter to stay in turnaround state			
+  			      clear_state_counter_9_r   <= clear_state_counter_9_d;
+  			      enable_state_counter_9_r  <= enable_state_counter_9_d;	
       	    	
       	    end if;
       	    	
@@ -1526,6 +1696,21 @@ ENTITY mem_st_machine_controller is
          end if;
       end if;
   end process state_counter_8;
+  
+  
+  -- Counter to stay in turnaround state		
+  state_counter_9 : process( clk_i, rst_i, clear_state_counter_9_r)
+    begin
+      if ( rst_i = '1' ) then
+         state_counter_9_r       <=  0 ;
+      elsif( clear_state_counter_9_r = '1') then
+              state_counter_9_r  <=  0 ;
+      elsif( clk_i'event and clk_i = '1') then
+         if ( enable_state_counter_9_r = '1') then
+              state_counter_9_r  <=  state_counter_9_r + 1;
+         end if;
+      end if;
+  end process state_counter_9;
   
   ----------------------------------------
   -- Ancillary logic
