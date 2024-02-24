@@ -121,6 +121,10 @@ architecture struct of fista_accel_top is
   signal dbg_mem_shared_in_addb_int        : std_logic_vector(7 downto 0);
   signal data_to_mem_intf_fr_mem_in_buffer : std_logic_vector(79 downto 0);
   	
+  signal turnaround_int                    : std_logic;
+  
+  signal master_mode_int                   : std_logic_vector(4 downto 0);              
+  	
   constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
   constant ONE                             : natural := 1; -- for selecting  ONE = use debug
 begin
@@ -136,7 +140,7 @@ begin
     	  clk_i                                       => clk_i, --: in std_logic;
         rst_i               	                      => rst_i, --: in std_logic;
                                                     
-        master_mode_i                               => dbg_master_mode_i, --: in std_logic_vector(4 downto 0);
+        master_mode_i                               => master_mode_int, --: in std_logic_vector(4 downto 0);
                                                  
         rdy_fr_init_and_inbound_i                   => dbg_rdy_fr_init_and_inbound_i, --: in std_logic; -- Equiv. to Almost full flag
         wait_fr_init_and_inbound_i                  => dbg_wait_fr_init_and_inbound_i, --: in std_logic; -- Equiv. to Almost empty flag
@@ -194,7 +198,10 @@ begin
         fdbk_fifo_empty_i                           => dbg_fdbk_fifo_empty_i, --: in std_logic;
                                                 
         -- output control                      
-        fista_accel_valid_rd_o                      => fista_accel_valid_rd_o--: out std_logic
+        fista_accel_valid_rd_o                      => fista_accel_valid_rd_o,--: out std_logic
+        
+        -- turnaround signal
+        turnaround_o                                => turnaround_int
     	                                              
     );
     
@@ -263,6 +270,19 @@ begin
     -----------------------------------------
     --  master_controller
     -----------------------------------------	
+
+    
+    u5 : entity work.master_st_machine_controller         
+    PORT MAP(                                
+    	                                   
+    	  clk_i                  => clk_i,--: in std_logic; --clk_i, --: in std_logic;
+        rst_i               	 => rst_i,--: in std_logic; --rst_i, --: in std_logic;
+                                
+        turnaround_i           => turnaround_int,--: in std_logic_vector(4 downto 0);                                                                                        
+                               
+        master_mode_o          => master_mode_int--: out std_logic_vector( 4 downto 0)
+                                       
+    );                              
 
     -----------------------------------------
     --  fft engine
