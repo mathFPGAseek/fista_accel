@@ -177,7 +177,9 @@ signal rd_addr_from_rd_rom      			 : std_logic_vector(15 downto 0);
 signal rd_addr_incr_from_mem_cont      : std_logic_vector(15 downto 0); 
 signal rd_col_addr_int                 : std_logic_vector(15 downto 0);
 signal select_wr_rom_en         : std_logic;
-signal select_rd_rom_en         : std_logic;    
+signal select_rd_rom_en         : std_logic;
+
+signal app_en_int               : std_logic;    
  
 	
 begin
@@ -210,7 +212,7 @@ begin
         app_rd_data_valid_i                         => app_rd_data_valid_i, --: in std_logic_vector( 0 downto 0);
         app_cmd_o                                   => app_cmd_o, --: out std_logic_vector(2 downto 0);
         app_addr_o                                  => app_addr_o, --: out std_logic_vector(28 downto 0);
-        app_en_o                                    => app_en_o, --: out std_logic;
+        app_en_o                                    => app_en_int, --: out std_logic;
         app_wdf_mask_o                              => app_wdf_mask_o, --: out std_logic_vector(63 downto 0);
                                              
         app_wdf_end_o                               => app_wdf_end_o, --: out std_logic;
@@ -291,7 +293,7 @@ begin
     douta             =>   mem_shared_out_addb_int--: out STD_LOGIC_VECTOR ( 7 downto 0 )
     );
     
-    select_rd_rom_en <= master_mode_i(0) and mem_shared_in_enb_int;
+    select_rd_rom_en <= master_mode_i(0) and app_en_int;
             
     U2 : entity work.blk_rd_addr_mem_gen_no_reg_0 
     PORT MAP( 
@@ -344,7 +346,8 @@ begin
     -- Assignments
     -----------------------------------------.	 
     mem_shared_in_enb_o   <= mem_shared_in_enb_int_r;
-    mem_shared_in_addb_o  <= mem_shared_out_addb_int;  
+    mem_shared_in_addb_o  <= mem_shared_out_addb_int; 
+    app_en_o              <= app_en_int; 
             	
 end  architecture struct; 
     

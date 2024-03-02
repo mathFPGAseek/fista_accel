@@ -621,7 +621,7 @@ wire [APP_DATA_WIDTH-1:0]       exp_rd_data;       // Expected read data
     .app_rdy_i           	            (app_rdy), //: in std_logic;
     .app_wdf_rdy_i       	            (app_wdf_rdy), //: in std_logic;
     .app_rd_data_valid_i              (app_rd_data_valid), //: in std_logic_vector( 0 downto 0);
-    .add_rd_data_i                    (add_rd_data), //: in std_logic_vector(511 downto 0);
+    .add_rd_data_i                    (app_rd_data), //: in std_logic_vector(511 downto 0);
     .app_cmd_o                        (app_cmd), //: out std_logic_vector(2 downto 0);
     .app_addr_o                       (app_addr), //: out std_logic_vector(28 downto 0);
     .app_en_o                         (app_en), //: out std_logic;

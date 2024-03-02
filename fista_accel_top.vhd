@@ -123,7 +123,10 @@ architecture struct of fista_accel_top is
   	
   signal turnaround_int                    : std_logic;
   
-  signal master_mode_int                   : std_logic_vector(4 downto 0);              
+  signal master_mode_int                   : std_logic_vector(4 downto 0); 
+  	
+  -- debug signals
+  signal dbg_rd_r                          :std_logic_vector(511 downto 0);             
   	
   constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
   constant ONE                             : natural := 1; -- for selecting  ONE = use debug
@@ -342,7 +345,14 @@ begin
     -----------------------------------------
     --  f_h adj memory
     -----------------------------------------	
-    
+    debug_rd_data : process(clk_i, rst_i)
+    	begin
+    		if(rst_i = '1') then
+    			dbg_rd_r   <= (others=> '0');
+    		elsif(clk_i'event and clk_i = '1') then
+    			dbg_rd_r <= add_rd_data_i;
+    		end if;
+    end process debug_rd_data;
     -----------------------------------------
     --  f_v memory
     -----------------------------------------	
