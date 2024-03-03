@@ -160,7 +160,10 @@ ENTITY mem_st_machine_controller is
     turnaround_o                 : out std_logic;
     
     -- rd counter to form read addr for col
-    rd_addr_incr_from_mem_cont_o : out std_logic_vector(15 downto 0)              
+    rd_addr_incr_from_mem_cont_o : out std_logic_vector(15 downto 0) ;
+    	
+    -- enable for rom
+    enable_for_rom_o             : out std_logic             
 
 
     );
@@ -183,6 +186,9 @@ ENTITY mem_st_machine_controller is
   signal app_en_r          : std_logic;
   signal app_en_rr         : std_logic;
   signal app_en_rrr        : std_logic;
+  signal app_en_rrrr       : std_logic;
+  signal app_en_rrrrr      : std_logic;
+  signal app_en_rrrrrr     : std_logic;
   signal app_wdf_end_r     : std_logic;
   signal app_wdf_end_rr    : std_logic;
   signal app_wdf_end_rrr   : std_logic;
@@ -241,9 +247,17 @@ ENTITY mem_st_machine_controller is
   signal fdbk_fifo_rd_en_d           : std_logic;
   signal fdbk_fifo_rd_en_r           : std_logic;
   
+  signal read_state_d                : std_logic;
+  
   signal decoder_st_d                : std_logic_vector(7 downto 0);
   signal decoder_st_r                : std_logic_vector(7 downto 0);
   signal decoder_st_rr               : std_logic_vector(7 downto 0);
+  signal decoder_st_rrr              : std_logic_vector(7 downto 0);
+  signal decoder_st_rrrr             : std_logic_vector(7 downto 0);
+  signal decoder_st_rrrrr            : std_logic_vector(7 downto 0);
+  	
+  signal decoder_st_r_Q              : std_logic_vector(7 downto 0);
+ 	
   	
   signal pulse_d                     : std_logic;
   signal pulse_r                     : std_logic;
@@ -1388,6 +1402,10 @@ ENTITY mem_st_machine_controller is
         
         app_cmd_rrr       <=          app_cmd_rr;        --: out std_logic_vector(2 downto 0);
         app_en_rrr        <=          app_en_rr;         --: out std_logic;
+        app_en_rrrr       <=          app_en_rrr;         --: out std_logic;
+        app_en_rrrrr      <=          app_en_rrrr;         --: out std_logic;
+        app_en_rrrrrr     <=          app_en_rrrrr;         --: out std_logic;
+
         app_wdf_end_rrr   <=          app_wdf_end_rr;    --: out std_logic;
         --app_wdf_en_r    <=          app_wdf_en_d;     --: out std_logic;
         app_wdf_wren_rrr  <=          app_wdf_wren_rr;   --: out std_logic_vector(2 downto 0);
@@ -1442,11 +1460,15 @@ ENTITY mem_st_machine_controller is
   -----------------------------------------
   -- Address Decoder
   -----------------------------------------.
-  address_decoder: process( decoder_st_r,bank_addr_r,pipe1_addr_r,pipe2_addr_r,state_counter_4_r,
-  	                        state_counter_5_r,state_counter_6_r )
+  --address_decoder: process( decoder_st_r,bank_addr_r,pipe1_addr_r,pipe2_addr_r,state_counter_4_r,
+  --	                        state_counter_5_r,state_counter_6_r,decoder_st_r_Q )
+  	                        
+  address_decoder: process( decoder_st_r_Q,bank_addr_r,pipe1_addr_r,pipe2_addr_r,state_counter_4_r,
+  	                        state_counter_5_r,state_counter_6_r)
   	begin
   		
-  		case decoder_st_r is
+  		--case decoder_st_r is
+  		case decoder_st_r_Q is
   			
   	  when "00010010" => -- write 1-D FWD AV Row
   		
@@ -2266,6 +2288,29 @@ ENTITY mem_st_machine_controller is
   ----------------------------------------
   -- Ancillary logic
   ----------------------------------------.
+  select_app_en : process(read_state_d,app_en_rrr,app_en_rrrrrr)
+   begin
+  	
+  	if ( read_state_d = '0') then -- write state 		
+    	app_en_o   <=  app_en_rrr;         --: out std_logic;
+    else
+      app_en_o   <=  app_en_rrrrrr;         --: out std_logic
+    end if;
+   end process select_app_en;
+
+  
+  read_state_d <= master_mode_i(0);
+  	
+  	
+  -- Qualify read decode signal
+  qualify_decode_addr : process(decoder_st_r,decoder_st_rrrrr,read_state_d)
+  	begin
+  		if (read_state_d = '0') then -- write state
+  			decoder_st_r_Q <= decoder_st_r;   -- passthru
+  		else
+  			decoder_st_r_Q <= decoder_st_rrrrr; -- to assign correct addr for read			
+  		end if;
+  end process qualify_decode_addr;
   
   -- Signal generation for mem_start_init
   
@@ -2275,6 +2320,9 @@ ENTITY mem_st_machine_controller is
   			decoder_st_rr <= (others => '0');
   	  elsif(clk_i'event and clk_i  = '1') then
   	  	decoder_st_rr <= decoder_st_r;
+  	  	decoder_st_rrr <= decoder_st_rr;
+  	  	decoder_st_rrrr <= decoder_st_rrr;
+  	  	decoder_st_rrrrr <= decoder_st_rrrr;
   	  end if;
   end process decoder_st_r_del;
   
@@ -2381,14 +2429,15 @@ ENTITY mem_st_machine_controller is
   
   ----------------------------------------
   -- Assignments
-  ----------------------------------------.
+  ----------------------------------------
   --bp_d  <= std_logic_vector(to_unsigned(state_counter_1_r,bp_d'length));
   --bit_plane_int <= to_integer(unsigned(bit_planes_d ));
            	
   -- app interface to ddr controller
   app_addr_o        <=    "000000000" & app_addr_r;
   app_cmd_o         <=          app_cmd_rrr;        --: out std_logic_vector(2 downto 0);
-  app_en_o          <=          app_en_rrr;         --: out std_logic;
+  --app_en_o          <=          app_en_rrr;         --: out std_logic;
+  --app_en_o          <=          app_en_rrrrrr;         --: out std_logic;
   app_wdf_end_o     <=          app_wdf_end_rrr;    --: out std_logic;
   --app_wdf_en_o      <=          app_wdf_en_r;     --: out std_logic;
   app_wdf_wren_o    <=          app_wdf_wren_rrr;   --: out std_logic_vector(2 downto 0);
@@ -2436,6 +2485,8 @@ ENTITY mem_st_machine_controller is
   
   rd_addr_incr_from_mem_cont_o  <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_o'length));
     
+  enable_for_rom_o  <= app_en_r;
+  
             	
   END architecture struct; 
     
