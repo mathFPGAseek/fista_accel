@@ -90,13 +90,15 @@ entity mem_controller is
     --inbound_flow_mem_ext_enb_o       : out std_logic;
     --inbound_flow_mem_ext_addb_o      : out std_logic_vector(7 downto 0);
     
-    -- app interface to ddr controller
+    -- app interface to ddr controller.
     app_rdy_i           	: in std_logic;
     app_wdf_rdy_i       	: in std_logic;
     app_rd_data_valid_i   : in std_logic_vector( 0 downto 0);
     --add_rd_data_i         : in std_logic_vector(511 downto 0);
     app_cmd_o             : out std_logic_vector(2 downto 0);
-    app_addr_o            : out std_logic_vector(28 downto 0);
+    --app_addr_o            : out std_logic_vector(28 downto 0);
+    app_addr_o            : out std_logic_vector(15 downto 0);
+
     app_en_o              : out std_logic;
     app_wdf_mask_o        : out std_logic_vector(63 downto 0);
     --app_wdf_data_o        : out std_logic_vector(511 downto 0);

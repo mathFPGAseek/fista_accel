@@ -124,6 +124,16 @@ architecture struct of fista_accel_top is
   signal turnaround_int                    : std_logic;
   
   signal master_mode_int                   : std_logic_vector(4 downto 0); 
+  
+  signal dummy_input_1                     : std_logic := '1';
+  signal dummy_input_2                     : std_logic := '1';
+  signal dummy_input_3                     : std_logic_vector(0 downto 0) := (others=> '0');
+  		
+  signal sram_wr_en_vec_int                : std_logic_vector(0 downto 0);
+  signal sram_wr_en_int                    : std_logic;
+  signal sram_en_int                       : std_logic;
+  signal sram_addr_int                     : std_logic_vector(15 downto 0);
+  signal data_fr_mem_intf_to_sys           : std_logic_vector(79 downto 0);
   	
   -- debug signals
   signal dbg_rd_r                          :std_logic_vector(511 downto 0);             
@@ -155,16 +165,16 @@ begin
         mem_init_start_o                            => dbg_mem_init_start_int,--: out std_logic;
                                                     
         -- app interface to ddr controller.             
-        app_rdy_i           	                      => app_rdy_i,     --: in std_logic;
-        app_wdf_rdy_i       	                      => app_wdf_rdy_i, --: in std_logic;
-        app_rd_data_valid_i                         => app_rd_data_valid_i, --: in std_logic_vector( 0 downto 0);
-        app_cmd_o                                   => app_cmd_o, --: out std_logic_vector(2 downto 0);
-        app_addr_o                                  => app_addr_o, --: out std_logic_vector(28 downto 0);
-        app_en_o                                    => app_en_o, --: out std_logic;
-        app_wdf_mask_o                              => app_wdf_mask_o, --: out std_logic_vector(63 downto 0);
+        app_rdy_i           	                      => dummy_input_1,     --: in std_logic;
+        app_wdf_rdy_i       	                      => dummy_input_2, --: in std_logic;
+        app_rd_data_valid_i                         => dummy_input_3, --: in std_logic_vector( 0 downto 0);
+        app_cmd_o                                   => OPEN, --: out std_logic_vector(2 downto 0);
+        app_addr_o                                  => sram_addr_int, --: out std_logic_vector(28 downto 0);
+        app_en_o                                    => sram_en_int, --: out std_logic;
+        app_wdf_mask_o                              => OPEN, --: out std_logic_vector(63 downto 0);
                                              
-        app_wdf_end_o                               => app_wdf_end_o, --: out std_logic;
-        app_wdf_wren_o                              => app_wdf_wren_o, --: out std_logic;
+        app_wdf_end_o                               => OPEN, --: out std_logic;
+        app_wdf_wren_o                              => sram_wr_en_int, --: out std_logic;
                                              
         	                                  
         -- mux control to ddr memory controller.      
@@ -331,9 +341,19 @@ begin
   );
     
     -----------------------------------------
-    --  mem_intf
+    -- ??? mem_intf
     -----------------------------------------	
-
+  sram_wr_en_vec_int(0) <= sram_wr_en_int;
+  	
+  u6 : entity work.blk_mem_image_gen_0 
+  PORT MAP ( 
+  clka  => clk_i,                                  --clka : in STD_LOGIC;
+  ena   => sram_en_int,                            --ena : in STD_LOGIC;
+  wea   => sram_wr_en_vec_int,                         --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
+  addra => sram_addr_int,                          --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
+  dina  => data_to_mem_intf_fr_mem_in_buffer,      --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
+  douta => data_fr_mem_intf_to_sys                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  );
     -----------------------------------------
     --  back_end
     -----------------------------------------	
@@ -361,7 +381,19 @@ begin
     --  fista processing
     -----------------------------------------
     
-        
+    
+    -----------------------------------------
+    -- ???  Add a stub for mem_intf
+    -----------------------------------------
+    	
+    app_cmd_o       <= (others=> '0');
+    app_addr_o      <= (others=> '0');
+    app_en_o        <= '0';
+    app_wdf_mask_o  <= (others=> '0');
+    app_wdf_data_o  <= (others=> '0');
+    app_wdf_end_o   <= '0';  
+    app_wdf_wren_o  <= '0';
+      
     -----------------------------------------
     --  Assignments
     -----------------------------------------

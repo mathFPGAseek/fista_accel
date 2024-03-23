@@ -97,7 +97,9 @@ ENTITY mem_st_machine_controller is
     app_rd_data_valid_i   : in std_logic_vector( 0 downto 0);
     --add_rd_data_i         : in std_logic_vector(511 downto 0);
     app_cmd_o             : out std_logic_vector(2 downto 0);
-    app_addr_o            : out std_logic_vector(28 downto 0);
+    --app_addr_o            : out std_logic_vector(28 downto 0);
+    app_addr_o            : out std_logic_vector(15 downto 0);
+
     app_en_o              : out std_logic;
     app_wdf_mask_o        : out std_logic_vector(63 downto 0);
     --app_wdf_data_o        : out std_logic_vector(511 downto 0);
@@ -282,8 +284,9 @@ ENTITY mem_st_machine_controller is
   signal bank_addr_r                 : std_logic_vector(3 downto 0);
   signal pipe1_addr_r                : std_logic_vector(15 downto 0);  
   signal pipe2_addr_r                : std_logic_vector(15 downto 0);
-  signal app_addr_r                  : std_logic_vector(19 downto 0); 
-  	
+  --signal app_addr_r                  : std_logic_vector(19 downto 0); 
+  signal app_addr_r                  : std_logic_vector(15 downto 0); 
+	
   --extend FFt wait  
   signal extend_fft_flow_tlast_d     : std_logic;
   signal extend_fft_flow_tlast_r     : std_logic;
@@ -438,10 +441,10 @@ ENTITY mem_st_machine_controller is
        	  app_wdf_rdy_i,
        	  state_counter_1_r,
        	  state_counter_3_r,
-       	  state_counter_4_r,
+       	  state_counter_4_r, -- used as write addresss for fram
        	  state_counter_5_r,
        	  state_counter_6_r,
-       	  state_counter_7_r,
+       	  --state_counter_7_r, was used for stall in row wr and col rd
        	  state_counter_8_r,
        	  state_counter_9_r,
        	  state_counter_11_r,
@@ -525,8 +528,8 @@ ENTITY mem_st_machine_controller is
             		-- :) 	 ns_controller <= state_retry;
             		   ns_controller <= state_stall_wr_1d_fwd_av_row;
 
-            		elsif(state_counter_7_r >= COUNT_4 )	  then
-            		   ns_controller <= state_stall_wr_1d_fwd_av_row;
+            		--elsif(state_counter_7_r >= COUNT_4 )	  then
+            		--   ns_controller <= state_stall_wr_1d_fwd_av_row;
                 elsif(state_counter_3_r >= FFT_IMAGE_SIZE  ) then -- complete one FFT write
               	   ns_controller <= state_wait_for_fft;
                 elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
@@ -846,8 +849,8 @@ ENTITY mem_st_machine_controller is
   	  	-- app interface to ddr controller
         app_cmd_d         <=          "000"; --wr FWD AV Mem         --: out std_logic_vector(2 downto 0);
         app_en_d          <=          '1';   --wr FWD AV Mem         --: out std_logic;
-        -- :) --app_wdf_end_d     <=          '1';   --wr FWD AV Mem         --: out std_logic;
-        app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
+        app_wdf_end_d     <=          '1';   --wr FWD AV Mem         --: out std_logic;
+        --app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
 
         app_wdf_en_d      <=          '1';   --wr FWD AV Mem         --: out std_logic;
         app_wdf_wren_d    <=          '1';   --wr FWD AV Mem         --: out std_logic;
@@ -928,8 +931,8 @@ ENTITY mem_st_machine_controller is
   	  	-- app interface to ddr controller
         app_cmd_d         <=          "000"; --wr FWD AV Mem         --: out std_logic_vector(2 downto 0);
         app_en_d          <=          '1';   --wr FWD AV Mem         --: out std_logic;
-        --app_wdf_end_d     <=          '1';   --wr FWD AV Mem         --: out std_logic;
-        app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
+        app_wdf_end_d     <=          '1';   --wr FWD AV Mem         --: out std_logic;
+        --app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
 
         app_wdf_en_d      <=          '1';   --wr FWD AV Mem         --: out std_logic;
         app_wdf_wren_d    <=          '1';   --wr FWD AV Mem         --: out std_logic;
@@ -969,8 +972,8 @@ ENTITY mem_st_machine_controller is
   	  	-- app interface to ddr controller
         app_cmd_d         <=          "000"; --wr FWD AV Mem         --: out std_logic_vector(2 downto 0);
         app_en_d          <=          '1';   --wr FWD AV Mem         --: out std_logic;
-        --app_wdf_end_d     <=          '1';   --wr FWD AV Mem         --: out std_logic;
-        app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
+        app_wdf_end_d     <=          '1';   --wr FWD AV Mem         --: out std_logic;
+        --app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
 
         app_wdf_en_d      <=          '1';   --wr FWD AV Mem         --: out std_logic;
         app_wdf_wren_d    <=          '1';   --wr FWD AV Mem         --: out std_logic;
@@ -1635,8 +1638,9 @@ ENTITY mem_st_machine_controller is
             	bank_addr_r(3 downto 0)    <=	   "0000";   --upper Ping memory
   		        pipe1_addr_r(15 downto 0)  <=	   (others=> '0');
   		        pipe2_addr_r(15 downto 0)  <=    (others=>'0');
-  		        app_addr_r(19 downto 0)    <=    (others=> '0');
-                      
+  		        --app_addr_r(19 downto 0)    <=    (others=> '0');
+              app_addr_r(15 downto 0)    <=    (others=> '0');
+       
       	    elsif(clk_i'event and clk_i = '1') then
       	    	
       	    	bank_addr_r(3 downto 0)    <=	 bank_addr_d;
@@ -1644,7 +1648,9 @@ ENTITY mem_st_machine_controller is
   		        pipe2_addr_r(15 downto 0)  <=  pipe2_addr_d;
   		        --app_addr_r(19 downto 0)    <=  app_addr_d;
   		        --app_addr_r(19 downto 0)    <=  app_addr_d_d;   	    	
-      	    	app_addr_r(19 downto 0)    <=  "0000" & pipe1_addr_r;
+      	    	--app_addr_r(19 downto 0)    <=  "0000" & pipe1_addr_r;
+      	    	app_addr_r(15 downto 0)    <=  pipe1_addr_r;
+
       	    end if;
       	    	
       	   
@@ -2660,12 +2666,14 @@ ENTITY mem_st_machine_controller is
  
   ----------------------------------------
   -- Assignments
-  ----------------------------------------
+  ----------------------------------------.
   --bp_d  <= std_logic_vector(to_unsigned(state_counter_1_r,bp_d'length));
   --bit_plane_int <= to_integer(unsigned(bit_planes_d ));
            	
   -- app interface to ddr controller
-  app_addr_o        <=    "000000000" & app_addr_r;
+  --app_addr_o        <=    "000000000" & app_addr_r;
+  app_addr_o        <=    app_addr_r;
+
   app_cmd_o         <=          app_cmd_rrr;        --: out std_logic_vector(2 downto 0);
   --app_en_o          <=          app_en_rrr;         --: out std_logic;
   --app_en_o          <=          app_en_rrrrrr;         --: out std_logic;
