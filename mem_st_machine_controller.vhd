@@ -512,7 +512,9 @@ ENTITY mem_st_machine_controller is
             		 ) then
             		--ns_controller        <= state_rd_1d_fwd_av_col; --  DO I need to do
             		--ns_controller <= state_stall_wr_1d_fwd_av_row;
-            		  ns_controller <= state_DEBUG_AFTER_WAIT;
+            		--  ns_controller <= state_DEBUG_AFTER_WAIT;
+            		  ns_controller <= state_rd_2d_col;
+
             	else                                              -- redundant with state below
             		ns_controller        <= state_wait_for_fft; 
             	end if;
@@ -527,15 +529,20 @@ ENTITY mem_st_machine_controller is
             		-- :) --elsif (wr_error_retry_d	= '1') then
             		-- :) 	 ns_controller <= state_retry;
             		   ns_controller <= state_stall_wr_1d_fwd_av_row;
-
+            		   
+                elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
+                	 ns_controller <= state_turnaround;
+              	  --ns_controller <=  state_rd_1d_fwd_av_col; 
             		--elsif(state_counter_7_r >= COUNT_4 )	  then
             		--   ns_controller <= state_stall_wr_1d_fwd_av_row;
+            		
                 elsif(state_counter_3_r >= FFT_IMAGE_SIZE  ) then -- complete one FFT write
               	   ns_controller <= state_wait_for_fft;
-                elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
+                --elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
               	  --ns_controller <=  state_rd_1d_fwd_av_col;
               	  --  ns_controller <= state_DEBUG_STOP;
-              	  ns_controller <= state_turnaround;
+              	--  ns_controller <= state_turnaround;
+              	
                 else
               	  ns_controller <=  state_wr_1d_fwd_av_row;	
                 end if;
@@ -616,11 +623,14 @@ ENTITY mem_st_machine_controller is
             	
             	decoder_st_d <= "00100010"; -- Read out 1-D FWD AV Col
 
-              if ( (app_rdy_i = '0' )  or (state_counter_7_r >= COUNT_4 )	  ) then
-            		   ns_controller <= state_stall_rd_2d_col;
-              elsif(state_counter_3_r >= FFT_IMAGE_SIZE  ) then -- complete one FFT write
+              --if ( (app_rdy_i = '0' )  or (state_counter_7_r >= COUNT_4 )	  ) then
+            	--	   ns_controller <= state_stall_rd_2d_col;
+            	if(state_counter_3_r >= FFT_IMAGE_SIZE  ) then -- complete one FFT write
+              --elsif(state_counter_3_r >= FFT_IMAGE_SIZE  ) then -- complete one FFT write
               	   --ns_controller <= state_wait_for_fft_rd_2d_col;
-              	   ns_controller <= state_wait_for_fft;
+              	   --ns_controller <= state_wait_for_fft;
+              	   ns_controller <= state_rd_incr_addr;
+
 
               elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
               	  --ns_controller <= state_turnaround;
@@ -633,7 +643,9 @@ ENTITY mem_st_machine_controller is
              	
              	decoder_st_d <= "00100110";
              	
-             	     ns_controller <= state_rd_2d_col;
+             	     --ns_controller <= state_rd_2d_col;
+             	     ns_controller <= state_wait_for_fft;
+
               	
             -- Stall States for Sub state II
             
