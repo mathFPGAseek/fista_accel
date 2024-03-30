@@ -502,7 +502,7 @@ ENTITY mem_st_machine_controller is
             		   (master_mode_i(0) = '0')           		   	 
             		 ) then
             		--ns_controller        <= state_wr_1d_fwd_av_row;
-            		ns_controller <= state_stall_wr_1d_fwd_av_row;
+            		   ns_controller <= state_stall_wr_1d_fwd_av_row;
             	--elsif( (extend_fft_flow_tlast_r = '1' ) and -- fft_flow_tlast_i multi cycle(window)
             	  elsif( (falling_mvalid_event_r = '1') and
             		   --(app_rdy_i = '1' ) and        -- signal 
@@ -513,10 +513,23 @@ ENTITY mem_st_machine_controller is
             		--ns_controller        <= state_rd_1d_fwd_av_col; --  DO I need to do
             		--ns_controller <= state_stall_wr_1d_fwd_av_row;
             		--  ns_controller <= state_DEBUG_AFTER_WAIT;
-            		  ns_controller <= state_rd_2d_col;
+            		   ns_controller <= state_rd_2d_col;
+            		  
+              elsif(  (state_counter_4_r >= IMAGE256X256 ) and
+              	      (master_mode_i(0) = '0')           		   	 
+
+              	 ) then -- complete image for write row
+                	 ns_controller <= state_turnaround;
+                	             
+
+              elsif(  (state_counter_4_r >= IMAGE256X256 )  and
+              	      (master_mode_i(0) = '1')  -- read         		   	 
+                 ) then -- complete image for rd col
+              	  --ns_controller <= state_turnaround;
+              	   ns_controller <= state_DEBUG_STOP;
 
             	else                                              -- redundant with state below
-            		ns_controller        <= state_wait_for_fft; 
+            		   ns_controller        <= state_wait_for_fft; 
             	end if;
             	
             	
@@ -530,8 +543,8 @@ ENTITY mem_st_machine_controller is
             		-- :) 	 ns_controller <= state_retry;
             		   ns_controller <= state_stall_wr_1d_fwd_av_row;
             		   
-                elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
-                	 ns_controller <= state_turnaround;
+                --elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
+                --	 ns_controller <= state_turnaround;
               	  --ns_controller <=  state_rd_1d_fwd_av_col; 
             		--elsif(state_counter_7_r >= COUNT_4 )	  then
             		--   ns_controller <= state_stall_wr_1d_fwd_av_row;
@@ -632,9 +645,9 @@ ENTITY mem_st_machine_controller is
               	   ns_controller <= state_rd_incr_addr;
 
 
-              elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
+              --elsif(state_counter_4_r >= IMAGE256X256 ) then -- complete image
               	  --ns_controller <= state_turnaround;
-              	   ns_controller <= state_DEBUG_STOP;
+              --	   ns_controller <= state_DEBUG_STOP;
               else
               	  ns_controller <=  state_rd_2d_col;	
               end if;
