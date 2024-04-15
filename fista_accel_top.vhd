@@ -140,6 +140,8 @@ architecture struct of fista_accel_top is
   	
   constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
   constant ONE                             : natural := 1; -- for selecting  ONE = use debug
+  
+  signal dbg_qualify_state_verify_rd       : std_logic_vector(2 downto 0);
 begin
   
   
@@ -168,7 +170,7 @@ begin
         app_rdy_i           	                      => dummy_input_1,     --: in std_logic;
         app_wdf_rdy_i       	                      => dummy_input_2, --: in std_logic;
         app_rd_data_valid_i                         => dummy_input_3, --: in std_logic_vector( 0 downto 0);
-        app_cmd_o                                   => OPEN, --: out std_logic_vector(2 downto 0);
+        app_cmd_o                                   => dbg_qualify_state_verify_rd, --: out std_logic_vector(2 downto 0);
         app_addr_o                                  => sram_addr_int, --: out std_logic_vector(28 downto 0);
         app_en_o                                    => sram_en_int, --: out std_logic;
         app_wdf_mask_o                              => OPEN, --: out std_logic_vector(63 downto 0);
@@ -341,18 +343,21 @@ begin
   );
     
     -----------------------------------------
-    -- ??? mem_intf
+    -- Transpose mem_intf
     -----------------------------------------	
   sram_wr_en_vec_int(0) <= sram_wr_en_int;
-  	
-  u6 : entity work.blk_mem_image_gen_0 
+
+  	  	
+  u6 : entity work.mem_transpose_module 
   PORT MAP ( 
-  clka  => clk_i,                                  --clka : in STD_LOGIC;
+  clk_i => clk_i,
+  rst_i => rst_i,                                  --clka : in STD_LOGIC;
   ena   => sram_en_int,                            --ena : in STD_LOGIC;
   wea   => sram_wr_en_vec_int,                         --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
   addra => sram_addr_int,                          --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
   dina  => data_to_mem_intf_fr_mem_in_buffer,      --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
-  douta => data_fr_mem_intf_to_sys                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  douta => data_fr_mem_intf_to_sys,                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
   );
     -----------------------------------------
     --  back_end

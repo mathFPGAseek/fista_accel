@@ -66,6 +66,11 @@
 -- Before doing this we had writes that looked okay
 -- however, we were not able to read as I suspect
 -- that we were never really doiong writes correctly"
+-- Notes:
+--        		line counter 3  frame counter 4  incr_col_rd counter 10   frame counter 14  
+-- 1d row wr      x                 x  
+-- 1d col rd      x                 x                x         
+-- 2d col wr      x                                                          x                     
 ------------------------------------------------
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
@@ -200,10 +205,17 @@ ENTITY mem_st_machine_controller is
   signal app_wdf_end_r     : std_logic;
   signal app_wdf_end_rr    : std_logic;
   signal app_wdf_end_rrr   : std_logic;
+  signal app_wdf_end_rrrr     : std_logic;
+  signal app_wdf_end_rrrrr    : std_logic;
+  signal app_wdf_end_rrrrrr   : std_logic;
   signal app_wdf_en_r      : std_logic;
   signal app_wdf_wren_r    : std_logic;--: std_logic_vector(2 downto 0);
   signal app_wdf_wren_rr   : std_logic;
   signal app_wdf_wren_rrr  : std_logic;
+  signal app_wdf_wren_rrrr    : std_logic;
+  signal app_wdf_wren_rrrrr   : std_logic;
+  signal app_wdf_wren_rrrrrr  : std_logic;
+
     	
   -- mux/demux control to ddr memory controller.
   signal ddr_intf_mux_wr_sel_d    : std_logic_vector(1 downto 0);
@@ -300,18 +312,26 @@ ENTITY mem_st_machine_controller is
   signal rising_turnaround_event_rr   : std_logic;
   signal rising_turnaround_event_rrr  : std_logic;
   signal rising_turnaround_event_rrrr : std_logic;
+  
+  -- signal to select rd_incr_addr
+  signal rd_addr_incr_from_mem_cont_d : std_logic_vector(15 downto 0) ;
+  	
   -- counters
-  signal state_counter_1_r           : integer;
-  signal state_counter_2_r           : integer;
-  signal state_counter_3_r           : integer;
-  signal state_counter_4_r           : integer;
-  signal state_counter_5_r           : integer;
-  signal state_counter_6_r           : integer;
-  signal state_counter_7_r           : integer;
-  signal state_counter_8_r           : integer;
-  signal state_counter_9_r           : integer;
-  signal state_counter_10_r          : integer;
-  signal state_counter_11_r          : integer;
+  signal state_counter_1_r           : integer;  -- B writes
+  signal state_counter_2_r           : integer;  -- fft state aux
+  signal state_counter_3_r           : integer;  -- line
+  signal state_counter_4_r           : integer;  -- Frames Row
+  signal state_counter_5_r           : integer;  -- counter for state wait_wr_to_read
+  signal state_counter_6_r           : integer;  ----------- Not used
+  signal state_counter_7_r           : integer;  ----------- Not used
+  signal state_counter_8_r           : integer;  -- legacy stall
+  signal state_counter_9_r           : integer;  -- counter for state turnaround
+  signal state_counter_10_r          : integer;  -- rd incr for col addr
+  signal state_counter_11_r          : integer;  ----------- Not used
+  signal state_counter_14_r          : integer;  -- Frames Col
+  
+  signal state_counter_10_rr         : integer;  -- delayed counter for state_counter_10_r 
+ 
   
   -- :) --signal state_counter_3_rr          : integer;
   -- :) --signal state_counter_4_rr          : integer;
@@ -339,7 +359,11 @@ ENTITY mem_st_machine_controller is
   signal clear_state_counter_10_r    : std_logic;
   signal clear_state_counter_11_d    : std_logic;
   signal clear_state_counter_11_r    : std_logic;
-
+  signal clear_state_counter_14_d    : std_logic;
+  signal clear_state_counter_14_r    : std_logic;
+ 
+ 
+  
   
   signal enable_state_counter_1_d     : std_logic; 
   signal enable_state_counter_1_r     : std_logic;
@@ -363,7 +387,9 @@ ENTITY mem_st_machine_controller is
   signal enable_state_counter_10_r    : std_logic;
   signal enable_state_counter_11_d    : std_logic;
   signal enable_state_counter_11_r    : std_logic;
-
+  signal enable_state_counter_14_d    : std_logic;
+  signal enable_state_counter_14_r    : std_logic;
+  
   -- :) --signal reload_state_counter_3_and_4_d : std_logic;
   -- :) --signal reload_state_counter_3_and_4_r : std_logic;  
    
@@ -384,7 +410,7 @@ ENTITY mem_st_machine_controller is
   
     -- Sub State Type II: Col Rd, Col Wr w/ H for A and H* for A*
     --state_wait_for_fft_rd_2d_col,
-    state_rd_2d_col,                      -- 00100010
+    state_rd_2d_col,                      -- 00100010.
 
     -- stall sub state Type : II
     state_stall_rd_2d_col,                -- 00100011  -- kludge state to write out last samples of a fft line
@@ -393,16 +419,20 @@ ENTITY mem_st_machine_controller is
     
     -- add to rom col addr
     state_rd_incr_addr,                   -- 00100110
+    
+    -- writeback for compl 2d fwd
+    state_wr_col,                          -- 00100111
+    state_wait_wr_to_rd,                   -- 00101000
 
     -- debug state
     state_DEBUG_STOP,                     -- 11110001
     state_DEBUG_AFTER_WAIT,               -- 11110010
     
     -- reset
-    state_turnaround,                     -- 11000000
+    state_turnaround                     -- 11000000
     
     -- retry
-    state_retry                           -- 11000001
+    --state_retry                           -- 11000001
   );
   
   signal ns_controller : st_controller_t;
@@ -429,6 +459,8 @@ ENTITY mem_st_machine_controller is
   	
   -- :) --signal wr_error_retry_d  : std_logic;     
   BEGIN
+  	
+  	
   
   ----------------------------------------
   -- Main State Machine (Comb)
@@ -447,8 +479,9 @@ ENTITY mem_st_machine_controller is
        	  --state_counter_7_r, was used for stall in row wr and col rd
        	  state_counter_8_r,
        	  state_counter_9_r,
-       	  state_counter_11_r,
+       	  --state_counter_11_r,
        	  -- :) --wr_error_retry_d,
+       	  state_counter_14_r,
        	  ps_controller
        ) begin
        	
@@ -513,7 +546,9 @@ ENTITY mem_st_machine_controller is
             		--ns_controller        <= state_rd_1d_fwd_av_col; --  DO I need to do
             		--ns_controller <= state_stall_wr_1d_fwd_av_row;
             		--  ns_controller <= state_DEBUG_AFTER_WAIT;
-            		   ns_controller <= state_rd_2d_col;
+            		
+            		  -- ns_controller <= state_rd_2d_col;
+            		     ns_controller <= state_wr_col;
             		  
               elsif(  (state_counter_4_r >= IMAGE256X256 ) and
               	      (master_mode_i(0) = '0')           		   	 
@@ -522,7 +557,7 @@ ENTITY mem_st_machine_controller is
                 	 ns_controller <= state_turnaround;
                 	             
 
-              elsif(  (state_counter_4_r >= IMAGE256X256 )  and
+              elsif(  (state_counter_14_r >= IMAGE256X256 )  and -- Note we use counter 4 for col rd
               	      (master_mode_i(0) = '1')  -- read         		   	 
                  ) then -- complete image for rd col
               	  --ns_controller <= state_turnaround;
@@ -615,17 +650,17 @@ ENTITY mem_st_machine_controller is
             	end if;
             		
              	
-            when state_retry =>
-            	decoder_st_d <= "11000001";                            
-            	if( ( (app_rdy_i = '1' ) and (app_wdf_rdy_i = '1')  ) and
-            		  (state_counter_11_r >= COUNT_8 )   )then 
-            	--if (state_counter_11_r >= COUNT_8 ) then 
-            	  ns_controller <=  state_wr_1d_fwd_av_row;	
-            		
-            	else
-            		ns_controller <=  state_retry;
-            		
-            	end if;      
+            --when state_retry =>
+            --	decoder_st_d <= "11000001";                            
+            --	if( ( (app_rdy_i = '1' ) and (app_wdf_rdy_i = '1')  ) and
+            --		  (state_counter_11_r >= COUNT_8 )   )then 
+            --	--if (state_counter_11_r >= COUNT_8 ) then 
+            --	  ns_controller <=  state_wr_1d_fwd_av_row;	
+            --		
+            --	else
+            --		ns_controller <=  state_retry;
+            --		
+            --	end if;      
             	
                            ----------------------------------------.
                            -- Sub State II or IV 2D FFT or IFFT  --
@@ -658,7 +693,27 @@ ENTITY mem_st_machine_controller is
              	
              	     --ns_controller <= state_rd_2d_col;
              	     ns_controller <= state_wait_for_fft;
-
+           
+           when state_wr_col =>
+           	   decoder_st_d <= "00100111";
+           	   
+           	   if(state_counter_3_r >= FFT_IMAGE_SIZE) then
+           	   	 ns_controller <= state_wait_wr_to_rd;
+           	   	 
+           	   else
+           	   	 ns_controller <= state_wr_col;
+           	   	 
+           	   end if;
+           	   	
+            when state_wait_wr_to_rd =>
+            	 decoder_st_d <= "00101000";
+            	 
+            	 if ( state_counter_5_r >= COUNT_8) then
+            	     ns_controller <= state_rd_2d_col;
+            	 else
+            	 	   ns_controller <= state_wait_wr_to_rd;
+            	 end if;
+            	 
               	
             -- Stall States for Sub state II
             
@@ -1070,42 +1125,42 @@ ENTITY mem_st_machine_controller is
         turnaround_d                <=  '1'; 
       
       
-      when "11000001" => -- state retry
-  			  			
-  	  	-- app interface to ddr controller.
-        app_cmd_d         <=          "000"; --"Don't Care'--: out std_logic_vector(2 downto 0);
-        app_en_d          <=          '0';   -- No wr/rd  --: out std_logic;
-        app_wdf_end_d     <=          '0';   -- No wr     --: out std_logic;
-        app_wdf_en_d      <=          '0';   -- No wr     --: out std_logic;
-        app_wdf_wren_d    <=          '0';   -- No wr     --: out std_logic;
-    	
-        -- mux/demux control to ddr memory controller.
-        ddr_intf_mux_wr_sel_d    <=    "00";  --"Don't Care' --: out std_logic_vector(1 downto 0);
-        ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care' --: out std_logic_vector(2 downto 0);
-     
-        -- rd control to shared input memory
-        mem_shared_in_enb_d      <=   '0';    -- No rd --: out std_logic;
-    
-        -- mux/demux control to front and Backend modules  
-        front_end_demux_fr_fista_d  <=  '0'; --"Don't Care'  --: out std_logic;
-        front_end_mux_to_fft_d      <=  "00"; --"Don't Care'  --: out std_logic_vector(1 downto 0);
-        back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care'  --: out std_logic;
-        back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care'  --: out std_logic;
-        back_end_mux_to_front_end_d <=  '0'; --"Don't Care'  --: out std_logic;
-    
-        -- rd,wr control to F*(H) F(H) FIFO 
-        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
-        f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
-    
-        -- rd,wr control to F(V) FIFO
-        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
-        f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
-    
-        --  rd,wr control to Fdbk FIFO
-        fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
-        fdbk_fifo_rd_en_d           <=  '0'; -- No rd --: out std_logic; 
-        
-        turnaround_d                <=  '0';   
+      --when "11000001" => -- state retry
+  		--	  			
+  	  --	-- app interface to ddr controller.
+      --  app_cmd_d         <=          "000"; --"Don't Care'--: out std_logic_vector(2 downto 0);
+      --  app_en_d          <=          '0';   -- No wr/rd  --: out std_logic;
+      --  app_wdf_end_d     <=          '0';   -- No wr     --: out std_logic;
+      --  app_wdf_en_d      <=          '0';   -- No wr     --: out std_logic;
+      --  app_wdf_wren_d    <=          '0';   -- No wr     --: out std_logic;
+    	--
+      --  -- mux/demux control to ddr memory controller.
+      --  ddr_intf_mux_wr_sel_d    <=    "00";  --"Don't Care' --: out std_logic_vector(1 downto 0);
+      --  ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care' --: out std_logic_vector(2 downto 0);
+      --
+      --  -- rd control to shared input memory
+      --  mem_shared_in_enb_d      <=   '0';    -- No rd --: out std_logic;
+      --
+      --  -- mux/demux control to front and Backend modules  
+      --  front_end_demux_fr_fista_d  <=  '0'; --"Don't Care'  --: out std_logic;
+      --  front_end_mux_to_fft_d      <=  "00"; --"Don't Care'  --: out std_logic_vector(1 downto 0);
+      --  back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care'  --: out std_logic;
+      --  back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care'  --: out std_logic;
+      --  back_end_mux_to_front_end_d <=  '0'; --"Don't Care'  --: out std_logic;
+      --
+      --  -- rd,wr control to F*(H) F(H) FIFO 
+      --  f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+      --  f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+      --
+      --  -- rd,wr control to F(V) FIFO
+      --  f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+      --  f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+      --
+      --  --  rd,wr control to Fdbk FIFO
+      --  fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
+      --  fdbk_fifo_rd_en_d           <=  '0'; -- No rd --: out std_logic; 
+      --  
+      --  turnaround_d                <=  '0';   
         
       
       when "00100010" => --  Read out 1-D FWD AV Col ( Step 1)
@@ -1312,7 +1367,91 @@ ENTITY mem_st_machine_controller is
       --when "000110" => --  Wait for FFT completion --SAME as "000011"
       --when "000111" => --  Write in 2-D FWD AV Col ( Step 2) -- SAME as "000100"
       
-      
+          
+      when "00100111" =>  -- Wr Col 
+      	                
+      	                   
+  			
+  	  	-- app interface to ddr controller
+        app_cmd_d         <=          "000"; --wr FWD AV Mem         --: out std_logic_vector(2 downto 0);
+        app_en_d          <=          '1';   --wr FWD AV Mem         --: out std_logic;
+        app_wdf_end_d     <=          '1';   --wr FWD AV Mem         --: out std_logic;
+        --app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
+
+        app_wdf_en_d      <=          '1';   --wr FWD AV Mem         --: out std_logic;
+        app_wdf_wren_d    <=          '1';   --wr FWD AV Mem         --: out std_logic;
+    	
+        -- mux/demux control to ddr memory controller.
+        ddr_intf_mux_wr_sel_d    <=    "01";  --rd(fr shared) 1-D Fwd Av Row --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care'      --: out std_logic_vector(2 downto 0);
+     
+        -- rd control to shared input memory
+        mem_shared_in_enb_d      <=   '1';   --rd B Mem         --: out std_logic;
+    
+        -- mux/demux control to front and Backend modules  
+        front_end_demux_fr_fista_d  <=  '0'; --"Don't Care' --: out std_logic;
+        front_end_mux_to_fft_d      <=  "00"; --"Don't Care' --: out std_logic_vector(1 downto 0);
+        back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
+        back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
+        back_end_mux_to_front_end_d <=  '0'; --"Don't Care' --: out std_logic;
+    
+        -- rd,wr control to F*(H) F(H) FIFO 
+        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+    
+        -- rd,wr control to F(V) FIFO
+        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+    
+        --  rd,wr control to Fdbk FIFO
+        fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
+        fdbk_fifo_rd_en_d           <=  '0'; -- No rd --: out std_logic;
+        
+        turnaround_d                <=  '0';    
+       
+            
+          
+      when "00101000" =>  -- wait wr to rd
+      	                
+      	                   
+  			
+  	  	-- app interface to ddr controller
+        app_cmd_d         <=          "000"; --wr FWD AV Mem         --: out std_logic_vector(2 downto 0);
+        app_en_d          <=          '0';   --wr FWD AV Mem         --: out std_logic;
+        app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
+        --app_wdf_end_d     <=          '0';   --wr FWD AV Mem         --: out std_logic;
+
+        app_wdf_en_d      <=          '0';   --wr FWD AV Mem         --: out std_logic;
+        app_wdf_wren_d    <=          '0';   --wr FWD AV Mem         --: out std_logic;
+    	
+        -- mux/demux control to ddr memory controller.
+        ddr_intf_mux_wr_sel_d    <=    "01";  --rd(fr shared) 1-D Fwd Av Row --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_d  <=    "000"; --"Don't Care'      --: out std_logic_vector(2 downto 0);
+     
+        -- rd control to shared input memory
+        mem_shared_in_enb_d      <=   '0';   --rd B Mem         --: out std_logic;
+    
+        -- mux/demux control to front and Backend modules  
+        front_end_demux_fr_fista_d  <=  '0'; --"Don't Care' --: out std_logic;
+        front_end_mux_to_fft_d      <=  "00"; --"Don't Care' --: out std_logic_vector(1 downto 0);
+        back_end_demux_fr_fh_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
+        back_end_demux_fr_fv_mem_d  <=  '0'; --"Don't Care' --: out std_logic;
+        back_end_mux_to_front_end_d <=  '0'; --"Don't Care' --: out std_logic;
+    
+        -- rd,wr control to F*(H) F(H) FIFO 
+        f_h_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_h_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+    
+        -- rd,wr control to F(V) FIFO
+        f_v_fifo_wr_en_d            <=  '0'; -- No wr --: out std_logic;
+        f_v_fifo_rd_en_d            <=  '0'; -- No rd --: out std_logic;
+    
+        --  rd,wr control to Fdbk FIFO
+        fdbk_fifo_wr_en_d           <=  '0'; -- No wr --: out std_logic;
+        fdbk_fifo_rd_en_d           <=  '0'; -- No rd --: out std_logic;
+        
+        turnaround_d                <=  '0';    
+       
       
             
       when "11110001" => --  Debug after stop
@@ -1459,9 +1598,14 @@ ENTITY mem_st_machine_controller is
        
       elsif(clk_i'event and clk_i = '1') then
 
-        app_wdf_wren_r    <=          app_wdf_wren_d;   --: out std_logic_vector(2 downto 0);
-        app_wdf_wren_rr   <=          app_wdf_wren_r;   --: out std_logic_vector(2 downto 0);
-        app_wdf_wren_rrr  <=          app_wdf_wren_rr;   --: out std_logic_vector(2 downto 0);
+        app_wdf_wren_r      <=          app_wdf_wren_d;   --: out std_logic_vector(2 downto 0);
+        app_wdf_wren_rr     <=          app_wdf_wren_r;   --: out std_logic_vector(2 downto 0);
+        app_wdf_wren_rrr    <=          app_wdf_wren_rr;   --: out std_logic_vector(2 downto 0);
+        app_wdf_wren_rrrr   <=          app_wdf_wren_rrr;   --: out std_logic_vector(2 downto 0);
+        app_wdf_wren_rrrrr  <=          app_wdf_wren_rrrr;   --: out std_logic_vector(2 downto 0);
+        app_wdf_wren_rrrrrr <=          app_wdf_wren_rrrrr;   --: out std_logic_vector(2 downto 0);
+
+
       end if;
    end process st_mach_controller_wr_registers; 
    
@@ -1546,7 +1690,12 @@ ENTITY mem_st_machine_controller is
         app_en_rrrrr      <=          app_en_rrrr;         --: out std_logic;
         app_en_rrrrrr     <=          app_en_rrrrr;         --: out std_logic;
 
-        app_wdf_end_rrr   <=          app_wdf_end_rr;    --: out std_logic;
+        app_wdf_end_rrr    <=         app_wdf_end_rr;    --: out std_logic;
+        app_wdf_end_rrrr   <=         app_wdf_end_rrr;    --: out std_logic;
+        app_wdf_end_rrrrr  <=         app_wdf_end_rrrr;    --: out std_logic;
+        app_wdf_end_rrrrrr <=         app_wdf_end_rrrrr;    --: out std_logic;
+
+
         --app_wdf_en_r    <=          app_wdf_en_d;     --: out std_logic;
         --app_wdf_wren_rrr  <=          app_wdf_wren_rr;   --: out std_logic_vector(2 downto 0);
     	
@@ -1632,8 +1781,16 @@ ENTITY mem_st_machine_controller is
   	  	--pipe2_addr_d(15 downto 0)  <=	   std_logic_vector(to_unsigned(state_counter_6_r,pipe2_addr_d'length)); -- image count
   	  	--app_addr_d(19 downto 0)    <=    bank_addr_r & pipe1_addr_r(7 downto 0) & pipe2_addr_r(15 downto 8);   -- bank +
   	  		                                                                                                     -- lower bits of fft
-  	
-  	 when "00010011" => -- write  row Stall
+  				
+  	  when "00100111" => -- read 1-D FWD AV col
+  	  	
+  	  	bank_addr_d(3 downto 0)    <=    "0000";     --upper Ping memory
+  	  	pipe1_addr_d(15 downto 0)  <=	  rd_col_addr_int_i; -- fft count
+  	  	--pipe2_addr_d(15 downto 0)  <=	   std_logic_vector(to_unsigned(state_counter_6_r,pipe2_addr_d'length)); -- image count
+  	  	--app_addr_d(19 downto 0)    <=    bank_addr_r & pipe1_addr_r(7 downto 0) & pipe2_addr_r(15 downto 8);   -- bank +
+  	 
+  	 
+  	  when "00010011" => -- write  row Stall
   	 	 	 	  		
   		  bank_addr_d(3 downto 0)    <=	   "0000";   --upper Ping memory
   		  pipe1_addr_d(15 downto 0)  <=	   std_logic_vector(to_unsigned(state_counter_4_r,pipe1_addr_d'length)); --direct row addr; image counter
@@ -1724,15 +1881,18 @@ ENTITY mem_st_machine_controller is
   			clear_state_counter_9_d   <= '1';
   			enable_state_counter_9_d  <= '0';	
   		
-  		-- Counter for col reads	
+  		-- Counter for col reads	(incr)
   			clear_state_counter_10_d   <= '1';
 	  		enable_state_counter_10_d  <= '0';
 	  		
 	  	-- Counter for retry state	
         clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';
+	  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '1';
+	  		enable_state_counter_14_d  <= '0';		
 			
-
   			
   	  when "00000010" => -- Write in B
   			
@@ -1765,7 +1925,12 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
 	  		
   			clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';  		
+	  			  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '1';
+	  		enable_state_counter_14_d  <= '0';		
+				
 			
   		
   		when "00010001" =>  -- Wait for FFT
@@ -1798,7 +1963,12 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
 
   			clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0'; 		
+	  			  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '0';
+	  		enable_state_counter_14_d  <= '0';		
+				
 			
   		when "00010010" => -- write 1-D FWD AV Row
   			
@@ -1831,7 +2001,13 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
 	  	
   			clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  			  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '1';
+	  		enable_state_counter_14_d  <= '0';		
+				
 			
   	  -- Stall States
   	  when "00010011" =>  -- Stall  Write in 1-D FWD AV Row ( Step 0)  -- Start of A Calculation --
@@ -1865,7 +2041,13 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
 
   			clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  			  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '1';
+	  		enable_state_counter_14_d  <= '0';		
+					
 			
   			
   		 when "00010100" =>  -- extra write state 1
@@ -1899,7 +2081,13 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
 
   			clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  			  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '1';
+	  		enable_state_counter_14_d  <= '0';		
+					
 			
    		 when "00010101" =>  -- extra write state 2
   		 		
@@ -1933,7 +2121,13 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
  		
  		 		clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  			  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '1';
+	  		enable_state_counter_14_d  <= '0';		
+					
 			  	  	
   	  when "11000000" => -- state turnaround.
   	  	
@@ -1965,40 +2159,46 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';
 	  		
 	  		clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  			  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '1';
+	  		enable_state_counter_14_d  <= '0';		
+					
 			
 	  		
-	   when "11000001" => -- state retry 
-  	  	
-  	  	clear_state_counter_1_d   <= '1';
-  			enable_state_counter_1_d  <= '0';
-  			
-  			clear_state_counter_3_d   <= '0';
-  			enable_state_counter_3_d  <= '0';
-  			
-  			clear_state_counter_4_d   <= '0';
-  			enable_state_counter_4_d  <= '0';
-  			
-  			clear_state_counter_5_d   <= '1'; 
-  			enable_state_counter_5_d  <= '0'; 
- 
-  			clear_state_counter_6_d   <= '1';
-  			enable_state_counter_6_d  <= '0';	
-  			
-  	    clear_state_counter_7_d   <= '1';
-		    enable_state_counter_7_d  <= '0';
-  			
-  			clear_state_counter_8_d   <= '1';
-  			--enable_state_counter_8_d  <= '0';				
-  			  			
-  			clear_state_counter_9_d   <= '1';
-  			enable_state_counter_9_d  <= '0';	 
-  			
-  			clear_state_counter_10_d   <= '1';
-	  		enable_state_counter_10_d  <= '0';		
- 
-        clear_state_counter_11_d   <= '0';
-	  		enable_state_counter_11_d  <= '1';		
+	   --when "11000001" => -- state retry 
+  	 -- 	
+  	 -- 	clear_state_counter_1_d   <= '1';
+  	 --		enable_state_counter_1_d  <= '0';
+  	 --		
+  	 --		clear_state_counter_3_d   <= '0';
+  	 --		enable_state_counter_3_d  <= '0';
+  	 --		
+  	 --		clear_state_counter_4_d   <= '0';
+  	 --		enable_state_counter_4_d  <= '0';
+  	 --		
+  	 --		clear_state_counter_5_d   <= '1'; 
+  	 --		enable_state_counter_5_d  <= '0'; 
+     --
+  	 --		clear_state_counter_6_d   <= '1';
+  	 --		enable_state_counter_6_d  <= '0';	
+  	 --		
+  	 --    clear_state_counter_7_d   <= '1';
+		 --   enable_state_counter_7_d  <= '0';
+  	 --		
+  	 --		clear_state_counter_8_d   <= '1';
+  	 --		--enable_state_counter_8_d  <= '0';				
+  	 --		  			
+  	 --		clear_state_counter_9_d   <= '1';
+  	 --		enable_state_counter_9_d  <= '0';	 
+  	 --		
+  	 --		clear_state_counter_10_d   <= '1';
+	   --		enable_state_counter_10_d  <= '0';		
+     --
+     --   clear_state_counter_11_d   <= '0';
+	   --		enable_state_counter_11_d  <= '1';		
 		
   	   			
   	  when "00100010" => -- read 1-D FWD AV col
@@ -2031,7 +2231,13 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
 
         clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  			  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '0';
+	  		enable_state_counter_14_d  <= '0';		
+				
 			
   	    			
   		 when "00100011" => -- Stall   Read out 1-D FWD AV Col ( Step 1)
@@ -2065,7 +2271,12 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
 	
 	  	  clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  			  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '0';
+	  		enable_state_counter_14_d  <= '0';		
 			 			
   	  when "00100100" => -- rd ext line 1
   	  	
@@ -2097,7 +2308,13 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
 				
 				clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  					  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '0';
+	  		enable_state_counter_14_d  <= '0';		
+						
 			
   		 	   			
   	  when "00100101" => -- rd ext line 2
@@ -2130,7 +2347,13 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '0';	
 	  		
 	  		clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  					  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '0';
+	  		enable_state_counter_14_d  <= '0';		
+						
 				
   	  when "00100110" => -- read incr addr --
   	  	
@@ -2162,8 +2385,86 @@ ENTITY mem_st_machine_controller is
 	  		enable_state_counter_10_d  <= '1';	
 
   	    clear_state_counter_11_d   <= '1';
-	  		enable_state_counter_11_d  <= '0';		
-					
+	  		enable_state_counter_11_d  <= '0';
+	  		
+	  					  		
+	  	-- Counter for col wr frame
+	  	  clear_state_counter_14_d   <= '0';
+	  		enable_state_counter_14_d  <= '0';		
+			
+			
+  		when "00100111" => -- write col
+  			
+  			clear_state_counter_1_d   <= '1'; -- CLEAR B
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '0';
+  			enable_state_counter_3_d  <= '1'; -- ENABLE for this state	line 		
+  			  			
+  			clear_state_counter_4_d   <= '0';
+  			enable_state_counter_4_d  <= '0'; -- NOP col rd frame
+  			
+  			clear_state_counter_5_d   <= '1'; -- CLEAR counter for state wait wr to rd
+  			enable_state_counter_5_d  <= '0'; 
+ 
+  			clear_state_counter_6_d   <= '1'; -- NOT USED
+  			enable_state_counter_6_d  <= '0';	
+  			
+  			clear_state_counter_7_d   <= '1'; -- NOT USED
+  			enable_state_counter_7_d  <= '0';
+  			
+  			clear_state_counter_8_d   <= '1'; -- leagcy stall
+  			--enable_state_counter_8_d  <= '0';
+  			
+  			clear_state_counter_9_d   <= '1'; -- CLEAR counter for state turnaround
+  			enable_state_counter_9_d  <= '0';
+  			
+  			clear_state_counter_10_d   <= '0'; -- NOP for rd_incr_addr
+	  		enable_state_counter_10_d  <= '0';	
+	  	
+  			clear_state_counter_11_d   <= '1'; -- NOT USED
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  	  clear_state_counter_14_d   <= '0'; -- ENABLE counter for col wr frame
+	  		enable_state_counter_14_d  <= '1';		
+						
+			when "00101000" => -- wait wr to rd
+  			
+  			clear_state_counter_1_d   <= '1'; -- CLEAR B
+  			enable_state_counter_1_d  <= '0';
+  			
+  			clear_state_counter_3_d   <= '1'; -- ??? CLEAR line 
+  			enable_state_counter_3_d  <= '0'; 
+  			
+  			  			
+  			clear_state_counter_4_d   <= '0';
+  			enable_state_counter_4_d  <= '0'; -- NOP for col rd frame
+  			
+  			clear_state_counter_5_d   <= '0';
+  			enable_state_counter_5_d  <= '1'; -- ENABLE COUNTER FOR THIS STATE
+ 
+  			clear_state_counter_6_d   <= '1'; -- NOT USED
+  			enable_state_counter_6_d  <= '0';	
+  			
+  			clear_state_counter_7_d   <= '1'; -- NOT USED
+  			enable_state_counter_7_d  <= '0';
+  			
+  			clear_state_counter_8_d   <= '1'; -- leagacy stall
+  			--enable_state_counter_8_d  <= '0';
+  			
+  			clear_state_counter_9_d   <= '1'; -- CLEAR counter for state turnaround
+  			enable_state_counter_9_d  <= '0';
+  			
+  			clear_state_counter_10_d   <= '0'; -- NOP counter for rd incr addr
+	  		enable_state_counter_10_d  <= '0';	
+	  	
+  			clear_state_counter_11_d   <= '1'; -- NOT USED
+	  		enable_state_counter_11_d  <= '0';	
+	  		
+	  	  clear_state_counter_14_d   <= '0';-- ??? NOP for col wr frame
+	  		enable_state_counter_14_d  <= '0';		
+						
+							
 				  	  	
   	  when "11110001" => -- state debug stop
   	  	
@@ -2308,6 +2609,9 @@ ENTITY mem_st_machine_controller is
   	          
   	          clear_state_counter_11_r         <= '1';
   	          enable_state_counter_11_r        <= '0';
+  	          
+  	          clear_state_counter_14_r         <= '1';
+  	          enable_state_counter_14_r        <= '0';
          
       	    elsif(clk_i'event and clk_i = '1') then
       	    	
@@ -2351,9 +2655,13 @@ ENTITY mem_st_machine_controller is
   			      clear_state_counter_10_r  <= clear_state_counter_10_d;
   	          enable_state_counter_10_r <= enable_state_counter_10_d;
   	          
-  	          -- Counter to exit retry state
+  	          ---- Counter to exit retry state
   			      clear_state_counter_11_r  <= clear_state_counter_11_d;
   	          enable_state_counter_11_r <= enable_state_counter_11_d;
+  	          
+  	           ---- Counter for frame image wr col
+  			      clear_state_counter_14_r  <= clear_state_counter_14_d;
+  	          enable_state_counter_14_r <= enable_state_counter_14_d;
          	
       	    	
       	    end if;
@@ -2523,6 +2831,21 @@ ENTITY mem_st_machine_controller is
       end if;
   end process state_counter_11;
   
+    
+  -- Counter for col image	
+  state_counter_14 : process( clk_i, rst_i, clear_state_counter_14_r)
+    begin
+      if ( rst_i = '1' ) then
+         state_counter_14_r       <=  0 ;
+      elsif( clear_state_counter_14_r = '1') then
+              state_counter_14_r  <=  0 ;
+      elsif( clk_i'event and clk_i = '1') then
+         if ( enable_state_counter_14_r = '1') then
+              state_counter_14_r  <=  state_counter_14_r + 1;
+         end if;
+      end if;
+  end process state_counter_14;
+  
   
   ----------------------------------------
   -- Ancillary logic
@@ -2531,9 +2854,16 @@ ENTITY mem_st_machine_controller is
    begin
   	
   	if ( read_state_d = '0') then -- write state 		
-    	app_en_o   <=  app_en_rrr;         --: out std_logic;
+    	app_en_o          <=  app_en_rrr;         --: out std_logic;
+    	app_wdf_end_o     <=  app_wdf_end_rrr;    --: out std_logic;
+    	app_wdf_wren_o    <=  app_wdf_wren_rrr;   --: out std_logic_vector(2 downto 0);
+
     else
-      app_en_o   <=  app_en_rrrrrr;         --: out std_logic
+      app_en_o          <=  app_en_rrrrrr;         --: out std_logic
+      app_wdf_end_o     <=  app_wdf_end_rrrrrr;    --: out std_logic;
+      app_wdf_wren_o    <=  app_wdf_wren_rrrrrr;   --: out std_logic_vector(2 downto 0);
+
+
     end if;
    end process select_app_en;
 
@@ -2689,6 +3019,68 @@ ENTITY mem_st_machine_controller is
   -- logic enable not aligned with addr and wr_end
  -- :) -- wr_error_retry_d <= app_wdf_end_rrr  xor  app_wdf_wren_rrr;
  
+ 
+ 
+ -- delay incr addr that adds to counter for column read and writes
+ 
+  -- Counter to incr row col addr	
+  state_counter_10_delay : process( clk_i, rst_i, clear_state_counter_10_r)
+    begin
+      if ( rst_i = '1' ) then
+         state_counter_10_rr       <=  0 ;
+      elsif( clear_state_counter_10_r = '1') then
+              state_counter_10_rr  <=  0 ;
+      elsif( clk_i'event and clk_i = '1') then
+         if ( enable_state_counter_10_r = '1') then
+              state_counter_10_rr  <=  state_counter_10_r;
+         end if;
+      end if;
+  end process state_counter_10_delay;
+ 
+ -- select rd incr rd addr for rd and write columns 
+ select_mux_for_incr_addr : process(decoder_st_r)
+ 	
+ 	 begin
+ 	 	
+ 	 	 case decoder_st_r is
+ 	 	 	
+ 	 	 		when "00100010" => --state_rd_2d_col
+ 	 	 	
+ 	 	 	  	rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_d'length));
+ 	 	  
+ 	 	 	  
+ 	 	 		when "00100110" => -- state_rd_incr_addr
+ 	 	 	
+ 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_d'length));
+
+ 	 	 	 
+ 	 	 	 
+ 	 	 		when "00010001" => -- state_wait_for_fft
+ 	 	 	
+ 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_rr,rd_addr_incr_from_mem_cont_d'length));
+
+ 	 	 	 
+ 	 	 		when "00100111" => -- state_wr_col
+ 	 	 	
+ 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_rr,rd_addr_incr_from_mem_cont_d'length));
+
+ 	 	 	 
+ 	 	 		when "00101000" => -- state_wait_wr_to_rd
+ 	 	 	
+ 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_rr,rd_addr_incr_from_mem_cont_d'length));
+
+ 	 	 	
+ 	 	 		when others =>
+ 	 	 	
+ 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_d'length));
+
+ 	 	 	  	
+ 	 	 end case;
+ 	 	 	
+ end process select_mux_for_incr_addr; 
+ 	 	 	  
+ 	 	  
+ 	 	 	
   ----------------------------------------
   -- Assignments
   ----------------------------------------.
@@ -2702,9 +3094,9 @@ ENTITY mem_st_machine_controller is
   app_cmd_o         <=          app_cmd_rrr;        --: out std_logic_vector(2 downto 0);
   --app_en_o          <=          app_en_rrr;         --: out std_logic;
   --app_en_o          <=          app_en_rrrrrr;         --: out std_logic;
-  app_wdf_end_o     <=          app_wdf_end_rrr;    --: out std_logic;
+  --app_wdf_end_o     <=          app_wdf_end_rrr;    --: out std_logic;
   --app_wdf_en_o      <=          app_wdf_en_r;     --: out std_logic;
-  app_wdf_wren_o    <=          app_wdf_wren_rrr;   --: out std_logic_vector(2 downto 0);
+  --app_wdf_wren_o    <=          app_wdf_wren_rrr;   --: out std_logic_vector(2 downto 0);
   --app_wdf_wren_o    <=          app_wdf_wren_rr;
     	
   --mux/demux control to ddr memory controller.
@@ -2747,7 +3139,7 @@ ENTITY mem_st_machine_controller is
                                                   -- we attmept to make things 
                                                   -- quiescent.
   
-  rd_addr_incr_from_mem_cont_o  <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_o'length));
+  rd_addr_incr_from_mem_cont_o  <= rd_addr_incr_from_mem_cont_d;
     
   enable_for_rom_o  <= app_en_r;
   
