@@ -53,6 +53,8 @@ constant PAD_ZEROS  : std_logic_vector(5 downto 0) := (others=> '0');
 -- counters
 
 signal state_counter_2_r            : integer;
+--signal state_counter_2_rr           : integer;
+--signal state_counter_2_rrr          : integer;
 signal clear_state_counter_2_d      : std_logic;
 signal clear_state_counter_2_r      : std_logic;
 signal clear_state_counter_2_rr     : std_logic; 
@@ -60,14 +62,20 @@ signal enable_state_counter_2_d     : std_logic;
 signal enable_state_counter_2_r     : std_logic;
 
 signal state_counter_1_r            : integer;
+signal state_counter_1_rr           : integer;
+signal state_counter_1_rrr          : integer;
 signal clear_state_counter_1_r      : std_logic; -- no _d because comes from registered last event
 
 
 -- misc for verification
 signal enable_read                  : std_logic;
+signal enable_read_r                : std_logic;
+signal enable_read_rr               : std_logic;
 signal delay_ena                    : std_logic;
 signal falling_valid_event_d        : std_logic;
 signal falling_valid_event_r        : std_logic;
+signal falling_valid_event_rr       : std_logic;
+signal falling_valid_event_rrr      : std_logic;
 signal falling_valid_event_int      : std_logic;
 signal qualify_state_r              : std_logic;
 signal qualify_state_rr             : std_logic;
@@ -98,8 +106,8 @@ signal qualify_state_int            : std_logic;
 	      --end loop;
 	     file_open(write_file,"col_rd_mem_raw_vectors.txt",write_mode);
 	     report" File Opened for writing ";
-	          for j in  0 to MAX_SAMPLES-1 loop
-	              for i in 0 to MAX_SAMPLES-1 loop
+	          for i in  0 to MAX_SAMPLES-1 loop
+	              for j in 0 to MAX_SAMPLES-1 loop
 	                  --data_write_var := to_bitvector(fft_spec(i,j));
 	                  data_write_var := to_bitvector(fft_mem(i,j));
 	                  write(mem_line_var ,data_write_var);
@@ -175,7 +183,20 @@ begin
 -----------------------------------------------------------------
 -----------------------------------------------------------------
  enable_read <= ena and not(wea(0));
-
+ 	
+ 	
+ 	delay_enable_read_reg  : process(clk_i, rst_i)
+ 		begin
+ 			if( rst_i = '1') then
+ 				enable_read_r     <= '0';
+ 				enable_read_rr    <= '0';
+ 				
+ 			elsif(clk_i'event and clk_i = '1') then
+ 				enable_read_r     <= enable_read;
+ 				enable_read_rr    <= enable_read_r;
+ 			end if;
+ 				
+  end process delay_enable_read_reg;
   ----------------------------------------
   -- Counters for fast address Verification
   ----------------------------------------
@@ -184,11 +205,17 @@ begin
     begin
       if  ( rst_i = '1' )   then
           state_counter_1_r       <=  0 ;
+          state_counter_1_rr      <=  0 ;
+          state_counter_1_rrr     <=  0 ;
       elsif( clear_state_counter_1_r = '1' ) then
           state_counter_1_r       <=  0 ;
+          state_counter_1_rr      <=  0 ;
+          state_counter_1_rrr     <=  0 ;              
       elsif( clk_i'event and clk_i = '1') then
-        if ( enable_read = '1') then
+        if (( enable_read = '1') or (enable_read_r = '1')) then
           state_counter_1_r       <=  state_counter_1_r + 1;
+          state_counter_1_rr      <=  state_counter_1_r;
+          state_counter_1_rrr     <=  state_counter_1_rr;
         end if;
       end if;
   end process state_counter_1;
@@ -213,9 +240,15 @@ begin
   falling_edge_mvalid_reg : process(clk_i,rst_i)
   	begin
   		if(rst_i = '1')	then
-  			falling_valid_event_r <= '0';
+  			falling_valid_event_r   <= '0';
+  			falling_valid_event_rr  <= '0';
+  			falling_valid_event_rrr <= '0';
+
   	  elsif(clk_i'event and clk_i = '1') then
-  	  	falling_valid_event_r <= falling_valid_event_d;
+  	  	falling_valid_event_r   <= falling_valid_event_d;
+  	  	falling_valid_event_rr  <= falling_valid_event_r;
+  	  	falling_valid_event_rrr <= falling_valid_event_rr;
+
   	  end if;
   end process falling_edge_mvalid_reg;
   
@@ -245,12 +278,18 @@ begin
   state_counter_2 : process( clk_i, rst_i,clear_state_counter_2_rr)
     begin
       if ( rst_i = '1' ) then
-          state_counter_2_r       <=  0 ;
+          state_counter_2_r       <=  0;
+          --state_counter_2_rr      <=  0;
+          --state_counter_2_rrr     <=  0;
       elsif(clear_state_counter_2_rr = '1') then
-          state_counter_2_r       <=  0 ;
+          state_counter_2_r       <=  0;
+          --state_counter_2_rr      <=  0;
+          --state_counter_2_rrr     <=  0;
       elsif( clk_i'event and clk_i = '1') then
-         if ( falling_valid_event_r = '1') then
+         if ( falling_valid_event_rrr = '1') then
           state_counter_2_r       <=  state_counter_2_r + 1;
+          --state_counter_2_rr      <=  state_counter_2_r;
+          --state_counter_2_rrr     <=  state_connter_2_rr;
          end if;
       end if;
   end process state_counter_2;
@@ -298,7 +337,9 @@ begin
    -----------------------------------------------------------------------
   -- Store read outputs from memory; We are reading an array built by  process record_outputs
   -----------------------------------------------------------------------.
-  RamProcRawData : process(clk_i,rst_i,falling_valid_event_d)
+  --RamProcRawData : process(clk_i,rst_i,falling_valid_event_d)
+  RamProcRawData : process(clk_i,rst_i)
+
     begin
   	  if ( rst_i = '1' ) then
          --fft_raw_mem <= (Others => '0');
@@ -306,8 +347,12 @@ begin
       --elsif(falling_valid_event_d = '1') then
       --   --fft_raw_mem <= (Others => '0');
       --   fft_raw_mem(state_counter_1_r,state_counter_2_r) <= data_out_r;
-  	  elsif enable_read = '1' then 		
-  			 fft_raw_mem(state_counter_1_r,state_counter_2_r) <= data_out_r;  				  
+  	  --elsif enable_read = '1' then 		
+  	  elsif enable_read_rr = '1' then 		
+   		--fft_raw_mem(state_counter_1_r,state_counter_2_r) <= data_out_r;  				  	  
+  		--fft_raw_mem(state_counter_1_rrr,state_counter_2_rrr) <= data_out_r;  
+  		  fft_raw_mem(state_counter_1_rrr,state_counter_2_r) <= data_out_r;  				  
+				  
   		end if;
    end process RamProcRawData;  
     
@@ -326,8 +371,12 @@ data_read : process(clear_state_counter_2_rr)
    end if;
 end process data_read;
 
-
-     
+ 	 	
+  ----------------------------------------
+  -- Assignments
+  ----------------------------------------.
+  
+  douta <=  data_out_r;  
   
  
   
