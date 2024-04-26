@@ -134,6 +134,7 @@ architecture struct of fista_accel_top is
   signal sram_en_int                       : std_logic;
   signal sram_addr_int                     : std_logic_vector(15 downto 0);
   signal data_fr_mem_intf_to_sys           : std_logic_vector(79 downto 0);
+  signal valid_fr_mem_intf_to_sys          : std_logic;
   	
   -- debug signals
   signal dbg_rd_r                          :std_logic_vector(511 downto 0);             
@@ -264,13 +265,13 @@ begin
     fr_back_end_data_i            =>   (others=> '0'), --: in std_logic_vector(79 downto 0);
     fr_back_end_data2_i           =>   (others=> '0'), --: in std_logic_vector(79 downto 0);
     fr_fista_data_i               =>   (others=> '0'), --: in std_logic_vector(79 downto 0);
-    fr_fd_back_fifo_data_i        =>   (others=> '0'), --: in std_logic_vector(79 downto 0);
+    fr_fd_back_fifo_data_i        =>   data_fr_mem_intf_to_sys, --: in std_logic_vector(79 downto 0);
                                
     fr_init_data_valid_i          =>   init_valid_data, --: in std_logic;	
     fr_back_end_valid_i           =>   '0', --: in std_logic;
     fr_back_end_valid2_i          =>   '0', --: in std_logic;
     fr_fista_valid_i              =>   '0', --: in std_logic;
-    fr_fd_back_fifo_valid_i       =>   '0', --: in std_logic;
+    fr_fd_back_fifo_valid_i       =>   valid_fr_mem_intf_to_sys, --: in std_logic;
                                 
   	                          
     -- Data to front end module  
@@ -357,6 +358,7 @@ begin
   addra => sram_addr_int,                          --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
   dina  => data_to_mem_intf_fr_mem_in_buffer,      --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
   douta => data_fr_mem_intf_to_sys,                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  vouta => valid_fr_mem_intf_to_sys,
   dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
   );
     -----------------------------------------

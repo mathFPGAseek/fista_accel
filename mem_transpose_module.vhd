@@ -13,6 +13,7 @@ entity mem_transpose_module is
     addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
     dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
     douta : out STD_LOGIC_VECTOR ( 79 downto 0 );
+    vouta : out STD_LOGIC;
     dbg_qualify_state_i : in STD_LOGIC
   );
 
@@ -25,7 +26,10 @@ architecture stub of mem_transpose_module is
 --attribute black_box_pad_pin of stub : architecture is "clka,ena,wea[0:0],addra[7:0],dina[79:0],clkb,enb,addrb[7:0],doutb[79:0]";
 --attribute x_core_info : string;
 --attribute x_core_info of stub : architecture is "blk_mem_gen_v8_4_5,Vivado 2022.2";.
-signal data_out_r   : std_logic_vector( 79 downto 0);
+
+-- For verification and synthesis
+signal data_out_r                   : std_logic_vector( 79 downto 0);
+signal enable_read_rr               : std_logic;
 
 
 -------------------------------------------------	
@@ -70,7 +74,7 @@ signal clear_state_counter_1_r      : std_logic; -- no _d because comes from reg
 -- misc for verification
 signal enable_read                  : std_logic;
 signal enable_read_r                : std_logic;
-signal enable_read_rr               : std_logic;
+--signal enable_read_rr               : std_logic;
 signal delay_ena                    : std_logic;
 signal falling_valid_event_d        : std_logic;
 signal falling_valid_event_r        : std_logic;
@@ -377,7 +381,7 @@ end process data_read;
   ----------------------------------------.
   
   douta <=  data_out_r;  
-  
+  vouta <=  enable_read_rr;
  
   
 end architecture stub;
