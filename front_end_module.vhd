@@ -75,9 +75,18 @@ signal mux_control_select_d       : std_logic_vector(2 downto 0);
 signal mux_control_select_r       : std_logic_vector(2 downto 0);   
 signal mux_out_to_fft_control_d   : std_logic;	
 signal mux_out_to_fft_control_r   : std_logic;
+
+signal fr_init_data_int           : std_logic_vector(79 downto 0);
+
+
+constant PAD_ZEROS  : std_logic_vector(5 downto 0) := (others=> '0');
+
    
 begin
-	
+
+-- correct alignment from inbound flow
+
+ fr_init_data_int <= PAD_ZEROS & fr_init_data_i(79 downto 46) & PAD_ZEROS & fr_init_data_i(39 downto 6);	
 -----------------------------------------.
 -----------------------------------------
 -- DATA PATH
@@ -133,7 +142,7 @@ begin
     -- Mux output to FFT
     -----------------------------------------.	
     mux_data_to_fft : process (mux_data_select_r,
-    	                         fr_init_data_i,
+    	                         fr_init_data_int,
     	                         fr_back_end_data_i,
     	                         fr_back_end_data2_i,
     	                         fr_fista_data_i,
@@ -145,7 +154,9 @@ begin
     			
     			when "000" =>
     				
-    				mux_out_to_fft_data_d <=  fr_init_data_i;
+    				--mux_out_to_fft_data_d <=  fr_init_data_i;
+    			  mux_out_to_fft_data_d <=  fr_init_data_int;
+
     				
     			when "001" =>
     				
@@ -165,7 +176,7 @@ begin
     		  	   		  	
     		  when others => 
     		  	
-    		  	mux_out_to_fft_data_d <=  fr_init_data_i;
+    		  	mux_out_to_fft_data_d <=  fr_init_data_int;
     		  	
         end case;
     end process mux_data_to_fft;

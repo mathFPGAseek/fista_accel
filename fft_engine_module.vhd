@@ -303,8 +303,8 @@ begin
      
     -- data offset from <39:6> because data is native 34 bits(1.33) & data read from mem
     -- that was 40 bits in length, with most sig fig big endian;
-    fft_input_data <= PAD_ZEROS & delay_data_6_r(79 downto 46) & PAD_ZEROS & delay_data_6_r(39 downto 6); -- 
-   
+    --fft_input_data <= PAD_ZEROS & delay_data_6_r(79 downto 46) & PAD_ZEROS & delay_data_6_r(39 downto 6); -- 
+    fft_input_data <= delay_data_6_r;
     -----------------------------------------
     --  FFT Core
     -----------------------------------------	
