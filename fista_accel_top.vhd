@@ -141,6 +141,7 @@ architecture struct of fista_accel_top is
   	
   constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
   constant ONE                             : natural := 1; -- for selecting  ONE = use debug
+  constant  ZERO                           : natural := 0;
   
   signal dbg_qualify_state_verify_rd       : std_logic_vector(2 downto 0);
 begin
@@ -259,7 +260,9 @@ begin
 	  clk_i               	      =>   clk_i, --: in std_logic;
     rst_i               	      =>   rst_i, --: in std_logic;
                                
-    master_mode_i                 =>   dbg_master_mode_i, --: in std_logic_vector(4 downto 0);
+    --master_mode_i                 =>   dbg_master_mode_i, --: in std_logic_vector(4 downto 0);
+    master_mode_i                 =>   master_mode_int, --: in std_logic_vector(4 downto 0);
+
                              
     fr_init_data_i                =>   init_data, --: in std_logic_vector(79 downto 0);
     fr_back_end_data_i            =>   (others=> '0'), --: in std_logic_vector(79 downto 0);
@@ -306,13 +309,16 @@ begin
     u3 : entity work.fft_engine_module 
     GENERIC MAP(
 	    g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
+	      --g_USE_DEBUG_i  =>  ZERO) -- 0 = no debug , 1 = debug
+
     PORT MAP (                      
                                     
 	  clk_i               	     =>    clk_i,--: in std_logic;
     rst_i               	     =>    rst_i,--: in std_logic;
                                     
-    master_mode_i              =>    dbg_master_mode_i ,--: in std_logic_vector(4 downto 0);
-  	                                
+    --master_mode_i              =>    dbg_master_mode_i ,--: in std_logic_vector(4 downto 0);
+  	master_mode_i              =>   master_mode_int, --: in std_logic_vector(4 downto 0);
+                                
     -- Input Data to front end      
     init_valid_data_i          =>    to_fft_valid_int,--: in std_logic;
     init_data_i                =>    to_fft_data_int,--: in std_logic_vector(79 downto 0);    

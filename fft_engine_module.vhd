@@ -80,7 +80,10 @@ signal delay_data_4_r           : std_logic_vector(79 downto 0);
 signal delay_data_5_r           : std_logic_vector(79 downto 0);
 signal delay_data_6_r           : std_logic_vector(79 downto 0);
 --signal delay_data_7_r           : std_logic_vector(79 downto 0);
-signal fft_input_data           : std_logic_vector(79 downto 0);        
+signal fft_input_data           : std_logic_vector(79 downto 0);
+	
+signal delay_master_mode_reg    : std_logic;
+signal rising_edge_master_mode_reg : std_logic;        
  
 --constant
 --constant IMAG_ZEROS : std_logic_vector(39 downto 0) := (others=> '0');
@@ -109,10 +112,14 @@ constant MEM_WIDTH   : integer := IP_WIDTH*2 -1;
 type     MEM_ARRAY is array(0 to  MAX_SAMPLES-1,0 to MAX_SAMPLES-1) of std_logic_vector(MEM_WIDTH downto  0);
 type     bit_addr is array ( 0 to MAX_SAMPLES-1) of integer;
 type     result_type is ( '0', '1');
-signal   fft_raw_mem : MEM_ARRAY;
-file     write_file : text;
+signal   fft_raw_mem_1d : MEM_ARRAY;
+signal   fft_raw_mem_2d : MEM_ARRAY;
+file     write_file_1d : text;
+file     write_file_2d : text;
 signal   dummy  : std_logic := '1';
 signal   write_fft_1d_raw_done : result_type;
+signal   write_fft_2d_test_raw_done : result_type;
+
 
 constant PAD_ZEROS  : std_logic_vector(5 downto 0) := (others=> '0');
 	
@@ -162,8 +169,9 @@ signal fft_bin_seq_addr : bit_addr :=
   -------------------------------------------------
 	-- Function Write to a file the mem contents to check
 	-------------------------------------------------
-	impure function writeToFileMemRawContents(  signal fft_mem   : in MEM_ARRAY;
-		                                          signal fft_bin_center_addr : in bit_addr) return result_type is
+	impure function writeToFileMemRawContentsFwd1D(  signal fft_mem   : in MEM_ARRAY;
+		                                               signal fft_bin_center_addr : in bit_addr
+		                                            ) return result_type is
 	   variable result       : result_type;    
 	   variable mem_line_var : line;
 	   variable done         : integer;
@@ -177,21 +185,54 @@ signal fft_bin_seq_addr : bit_addr :=
 	            fft_spec(i,k) := (fft_mem(i,j));
 	         end loop;
 	      end loop;
-	     file_open(write_file,"fft_1d_mem_raw_vectors.txt",write_mode);
+	     file_open(write_file_1d,"fft_1d_mem_raw_vectors.txt",write_mode);
 	     report" File Opened for writing ";
 	          for i in  0 to MAX_SAMPLES-1 loop
 	              for j in 0 to MAX_SAMPLES-1 loop
 	                  data_write_var := to_bitvector(fft_spec(i,j));
 	                  write(mem_line_var ,data_write_var);
-	                  writeline(write_file,mem_line_var);                  
+	                  writeline(write_file_1d,mem_line_var);                  
 	                  --report" Start writing to file ";
 	              end loop;
 	          end loop;
-	      done := 1;
-	      file_close(write_file);
-	      report" Done writing to file ";	  
-  	    return result;  	       
-  end function  writeToFileMemRawContents;
+	     done := 1;
+	     report" Done writing to file for init fft data";	  	     	 
+	     file_close(write_file_1d);
+  	   return result;  	       
+  end function  writeToFileMemRawContentsFwd1D;
+
+impure function writeToFileMemRawContentsFwd2D(  signal fft_mem   : in MEM_ARRAY;
+		                                               signal fft_bin_center_addr : in bit_addr
+		                                            ) return result_type is
+	   variable result       : result_type;    
+	   variable mem_line_var : line;
+	   variable done         : integer;
+	   variable k            : integer;
+	   variable fft_spec     : MEM_ARRAY;
+	   variable data_write_var : bit_vector(67 downto 0);
+	   begin
+	   	 	for i in  0 to MAX_SAMPLES-1 loop
+	         for j in 0 to MAX_SAMPLES-1 loop
+	            k := fft_bin_center_addr(j);
+	            fft_spec(i,k) := (fft_mem(i,j));
+	         end loop;
+	      end loop;
+	     file_open(write_file_2d,"fft_2d_mem_test_raw_vectors.txt",write_mode);
+	     report" File Opened for writing ";
+	          for i in  0 to MAX_SAMPLES-1 loop
+	              for j in 0 to MAX_SAMPLES-1 loop
+	                  data_write_var := to_bitvector(fft_spec(i,j));
+	                  write(mem_line_var ,data_write_var);
+	                  writeline(write_file_2d,mem_line_var);                  
+	                  --report" Start writing to file ";
+	              end loop;
+	          end loop;
+	     done := 1;
+	     report" Done writing to file for fdbk fft data";	  	     	 
+	     file_close(write_file_2d);
+  	   return result;  	       
+  end function  writeToFileMemRawContentsFwd2D;
+
 
 
 begin
@@ -208,6 +249,8 @@ begin
                              
         master_mode_i          => master_mode_i,-- : in std_logic_vector(4 downto 0);                                                                                      
         valid_i                => init_valid_data_i,  -- : in std_logic; --
+        
+        mode_change_i          => rising_edge_master_mode_reg,
                              
         s_axis_config_valid_o  => s_axis_config_valid_int,-- : out std_logic;
         s_axis_config_trdy_i   => s_axis_config_trdy_int,-- : in std_logic;
@@ -258,9 +301,10 @@ begin
   end process delay_data_i;                       
 
      
-    fft_input_data <= PAD_ZEROS & delay_data_6_r(79 downto 46) & PAD_ZEROS & delay_data_6_r(39 downto 6); -- little endian
-    	                                                                                                    -- bottom padded
-    
+    -- data offset from <39:6> because data is native 34 bits(1.33) & data read from mem
+    -- that was 40 bits in length, with most sig fig big endian;
+    fft_input_data <= PAD_ZEROS & delay_data_6_r(79 downto 46) & PAD_ZEROS & delay_data_6_r(39 downto 6); -- 
+   
     -----------------------------------------
     --  FFT Core
     -----------------------------------------	
@@ -286,6 +330,21 @@ begin
     event_data_in_channel_halt 		=>  open, --: out STD_LOGIC;
     event_data_out_channel_halt 	=>  open --: out STD_LOGIC
   );
+  
+  ------------------------------------------
+  -- KLudge need to reset fft controller
+  ------------------------------------------
+  reset_fft: process(clk_i,rst_i)
+  	begin
+  		if( rst_i = '1') then
+  			delay_master_mode_reg <= '0';
+  		elsif(clk_i'event and clk_i = '1') then
+  			delay_master_mode_reg <= master_mode_i(0);
+  	  end if;
+  end process reset_fft;
+  
+  rising_edge_master_mode_reg <= not(delay_master_mode_reg) and master_mode_i(0);
+  
 
 
   ----------------------------------------..
@@ -458,33 +517,53 @@ end generate g_NO_U0_DEBUG;
   -----------------------------------------------------------------------
   -- Store FFT outputs to memory; We are reading an array built by  process record_outputs
   -----------------------------------------------------------------------.
-  RamProcRawData : process(clk_i,rst_i, m_axis_data_tlast_int)
+  RamProcRawData1D : process(clk_i,rst_i, m_axis_data_tlast_int)
     begin
   	  if ( rst_i = '1' ) then
          --fft_raw_mem <= (Others => '0');
          dummy <= '1';
-      elsif( m_axis_data_tlast_int = '1') then
+      elsif( ( m_axis_data_tlast_int = '1') and (master_mode_i = "00000") )then
          --fft_raw_mem <= (Others => '0');
-         fft_raw_mem(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);
-  	  elsif m_axis_data_tvalid_int = '1' then 		
-  			 fft_raw_mem(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);  				  
+         fft_raw_mem_1d(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);
+  	  elsif( (m_axis_data_tvalid_int = '1') and (master_mode_i = "00000") )then 		
+  			 fft_raw_mem_1d(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);  				  
   		end if;
-   end process RamProcRawData;  
+   end process RamProcRawData1D;  
+    
+  RamProcRawData2D : process(clk_i,rst_i, m_axis_data_tlast_int)
+    begin
+  	  if ( rst_i = '1' ) then
+         --fft_raw_mem <= (Others => '0');
+         dummy <= '1';
+      elsif( ( m_axis_data_tlast_int = '1') and (master_mode_i = "00001") )then
+         --fft_raw_mem <= (Others => '0');
+         fft_raw_mem_2d(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);
+  	  elsif( (m_axis_data_tvalid_int = '1') and (master_mode_i = "00001") )then 		
+  			 fft_raw_mem_2d(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);  				  
+  		end if;
+   end process RamProcRawData2D;  
     
   
-  
-  -------------------------------------------------
-	-- Write to a file the mem contents to check
-	-------------------------------------------------  
+  -------------------------------------------------------
+	-- Write to a file the mem contents to check init data
+	-------------------------------------------------------  
 data_read : process(clear_state_counter_2_rr)
 
   --report " verfiication for 1-D FFTs enabled";
 
   begin
-   if (clear_state_counter_2_rr  = '1') then -- Have completed MAX_SAMPLE FFT Computations( 1-D)o
-        write_fft_1d_raw_done <= writeToFileMemRawContents(fft_raw_mem,fft_bin_seq_addr);	
-       report " Done writing FFTs for one frame";
+  	
+   if ( (clear_state_counter_2_rr  = '1') and (master_mode_i = "00000") ) then -- Have completed MAX_SAMPLE FFT Computations( 1-D)o
+        write_fft_1d_raw_done <= writeToFileMemRawContentsFwd1D(fft_raw_mem_1d,fft_bin_seq_addr);	
+       report " Done writing FFTs init data for one frame";
    end if;
+   	
+    if ( (clear_state_counter_2_rr  = '1') and (master_mode_i = "00001") ) then -- Have completed MAX_SAMPLE FFT Computations( 1-D)o
+        write_fft_2d_test_raw_done <= writeToFileMemRawContentsFwd2D(fft_raw_mem_2d,fft_bin_seq_addr);	
+       report " Done writing FFTs test fdbk data for one frame";
+   end if;
+   	     
+
 end process data_read;
 
 

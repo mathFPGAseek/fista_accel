@@ -36,6 +36,7 @@ entity fft_inbound_st_machine_controller is
                                
         master_mode_i          : in std_logic_vector(4 downto 0); --master_mode_i, --: in std_logic_vector(4 downto 0);                                                                                        
         valid_i                : in std_logic; --
+        mode_change_i          : in std_logic;
         
         s_axis_config_valid_o  : out std_logic;
         s_axis_config_trdy_i   : in std_logic;
@@ -110,7 +111,7 @@ constant DELAY512   : integer := 512;
   type st_controller_t is (
     state_init,
     state_config_fwd,
-    state_config_inv,
+    state_config_col_rd,
     state_proc_fft,
     state_read_done1,
     state_read_done2,
@@ -131,6 +132,7 @@ BEGIN
    	      valid_i,
        	  --delay_valid_7_r,
        	  master_mode_i,
+       	  mode_change_i,
        	  s_axis_data_trdy_i,
        	  m_axis_data_tlast_i,
        	  state_counter_1_r,
@@ -148,10 +150,10 @@ BEGIN
             		  (valid_i = '1') 
             		) then
             		ns_controller <= state_config_fwd;
-            	elsif( (master_mode_i = "00010" ) and
+            	elsif( (master_mode_i = "00001" ) and
             		  (valid_i = '1') 
             		) then 
-            		ns_controller <= state_config_inv;
+            		ns_controller <= state_config_col_rd;
             	else
             		ns_controller <= state_init;          		
               end if;
@@ -164,7 +166,7 @@ BEGIN
               ns_controller <= state_proc_fft;
 
            
-            when state_config_inv =>
+            when state_config_col_rd =>
             	
             	decoder_st_d <= "0011"; 
 
@@ -200,8 +202,10 @@ BEGIN
             	
             	decoder_st_d <= "0110";
             	
+            	if ( mode_change_i = '1') then
+            		  ns_controller  <= state_read_done3;
             	--if ( state_counter_2_r < DELAY256) then
-            	if ( state_counter_2_r < DELAY512) then
+            	elsif ( state_counter_2_r < DELAY512) then
             			 ns_controller  <= state_read_done2;  
             	else
             		   ns_controller  <= state_read_done3;

@@ -204,6 +204,11 @@ begin
     		when "00000" => -- A-1D-FWD-WR
     			
     			mux_control_select_d <= "000";
+    	
+    	 		
+    		when "00001" => -- A-1D-FWD-WR
+    			
+    			mux_control_select_d <= "100";
     			
     			
     	  when others =>
