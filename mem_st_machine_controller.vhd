@@ -708,7 +708,13 @@ ENTITY mem_st_machine_controller is
             when state_wait_wr_to_rd =>
             	 decoder_st_d <= "00101000";
             	 
-            	 if ( state_counter_5_r >= COUNT_8) then
+            	 
+              if(  (state_counter_14_r >= IMAGE256X256 )  and 
+              	      (master_mode_i(0) = '1')  -- read         		   	 
+                 ) then -- complete image for rd col
+              	   ns_controller <= state_wait_for_fft;
+            	 
+            	 elsif ( state_counter_5_r >= COUNT_8) then
             	     ns_controller <= state_rd_2d_col;
             	 else
             	 	   ns_controller <= state_wait_wr_to_rd;

@@ -103,6 +103,7 @@ signal enable_state_counter_2_r     : std_logic;
 
 --constant
 constant FFTSIZE256 : integer := 253; -- Make two less for pipeline latency to be applied
+constant DELAY128   : integer := 128;
 constant DELAY256   : integer := 256;
 constant DELAY512   : integer := 512;
 
@@ -205,7 +206,9 @@ BEGIN
             	if ( mode_change_i = '1') then
             		  ns_controller  <= state_read_done3;
             	--if ( state_counter_2_r < DELAY256) then
-            	elsif ( state_counter_2_r < DELAY512) then
+            	--elsif ( state_counter_2_r < DELAY512) then This works for row fft but not for col fft
+            	elsif ( state_counter_2_r < DELAY128) then 
+
             			 ns_controller  <= state_read_done2;  
             	else
             		   ns_controller  <= state_read_done3;

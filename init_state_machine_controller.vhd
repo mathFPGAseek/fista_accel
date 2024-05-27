@@ -84,6 +84,7 @@ signal addr_r         : std_logic_vector ( 16 downto 0 );
 constant DELAY32 : integer := 32;
 constant FFTSIZE256 : integer := 252; 
 constant IMAGE256X256 : integer := 65536;
+constant IMAGE256X256MINUSONE : integer := 65535;
 	
 -- States
   
@@ -117,7 +118,7 @@ BEGIN
        	
             when state_init =>
             	
-            	decoder_st_d <= "001"; --INIT State
+            	decoder_st_d <= "001"; --INIT State.
             	
             	if( (master_mode_i = "00000" ) and
             		  (mem_init_start_i = '1') 
@@ -131,7 +132,9 @@ BEGIN
             	            	
             	decoder_st_d <= "010"; 
             	
-            	if (  fft_rdy_i = '1' ) then
+            	if ( (  fft_rdy_i = '1' ) and
+            		   ( state_counter_1_r <= IMAGE256X256MINUSONE)
+            		 ) then
             		 ns_controller <= state_read_in_init;
             	else
             		  ns_controller <= state_wait;

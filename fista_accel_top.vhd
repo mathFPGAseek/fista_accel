@@ -308,8 +308,8 @@ begin
     -----------------------------------------
     u3 : entity work.fft_engine_module 
     GENERIC MAP(
-	    g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      --g_USE_DEBUG_i  =>  ZERO) -- 0 = no debug , 1 = debug
+	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
+	      g_USE_DEBUG_i  =>  ZERO) -- 0 = no debug , 1 = debug
 
     PORT MAP (                      
                                     
@@ -330,6 +330,10 @@ begin
     
     fft_rdy_o                  =>    fft_rdy_int                                 
     );
+    
+    -----------------------------------------
+    -- general procesor engine  (back_end)
+    -----------------------------------------	
     
     
     -----------------------------------------
@@ -367,12 +371,9 @@ begin
   vouta => valid_fr_mem_intf_to_sys,
   dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
   );
+
     -----------------------------------------
-    --  back_end
-    -----------------------------------------	
-    
-    -----------------------------------------
-    --  b fdbk memory
+    --  f_h  memory
     -----------------------------------------	
     
     -----------------------------------------
@@ -386,13 +387,15 @@ begin
     			dbg_rd_r <= add_rd_data_i;
     		end if;
     end process debug_rd_data;
-    -----------------------------------------
-    --  f_v memory
-    -----------------------------------------	
     
     -----------------------------------------
-    --  fista processing
+    --  b fdbk memory
+    -----------------------------------------	
+    
+    
     -----------------------------------------
+    --  v(k) memory
+    -----------------------------------------	
     
     
     -----------------------------------------
