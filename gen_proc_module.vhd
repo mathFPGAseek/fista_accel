@@ -25,7 +25,7 @@
 -- H,H* mult proc: mult hadmard w/ trans  & write to trans_mem_buffer
 -- Av-B,pad proc: subs w/ B & write to trans mem_buffer
 -- update proc: vk - alpha*trans & proj & write to trans_mem_buffer & vk buffer
-------------------------------------------------
+------------------------------------------------.
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
@@ -41,7 +41,7 @@ generic(
 	  clk_i               	         		: in std_logic;
     rst_i               	         		: in std_logic;
     
-    master_mode_i                  		: in std_logic_vector(6 downto 0); -- Bits 5 & 6 describe engine mode
+    master_mode_i                  		: in std_logic_vector(7 downto 0); -- Bits 5 & 6 describe engine mode
   	
       --inputs
     from_trans_mem_valid_i            : in std_logic;
@@ -79,11 +79,15 @@ generic(
     
 end gen_proc_module;
 
-architecture struct of gen_proc_module is 
+architecture struct of gen_proc_module is
+	
+-- master mode signals
+signal master_mode_upper_bits_d                  : std_logic_vector(2 downto 0);
+signal master_mode_upper_bits_r                  : std_logic_vector(2 downto 0);
 	
 -- mux control for rd fifo signals
-signal mux_decode_for_fifo_rd_d                  : std_logic;
-signal mux_decode_for_fifo_rd_r                  : std_logic;
+signal mux_decode_for_fifo_rd_d                  : std_logic_vector(1 downto 0);
+signal mux_decode_for_fifo_rd_r                  : std_logic_vector(1 downto 0);
 
 
 -- mux to fifo high signals
@@ -107,9 +111,11 @@ signal demux_to_fifo_low_data_in_r     						: std_logic_vector(79 downto 0);
 
 	
 -- demux from FIFOs to internal engines	
-signal demux_decode_for_internal_engine_d					: std_logic_vector(1 downto 0);	
+signal demux_decode_for_internal_engines_d				: std_logic_vector(1 downto 0);	
 signal fr_fifo_high_valid_out_d               		: std_logic;
-signal fr_fifo_high_data_out_d                		: std_logic_vector(79 downto 0);	
+signal fr_fifo_high_data_out_d                		: std_logic_vector(79 downto 0);
+signal fr_fifo_high_valid_out_r               		: std_logic;
+signal fr_fifo_high_data_out_r                		: std_logic_vector(79 downto 0);		
 signal demux_to_h_mult_eng_port_1_valid_in_d  		: std_logic;
 signal demux_to_h_mult_eng_port_1_data_in_d   		: std_logic_vector(79 downto 0);		
 signal demux_to_h_mult_eng_port_2_valid_in_d  		: std_logic;
@@ -122,9 +128,11 @@ signal demux_to_update_eng_port_1_valid_in_d      : std_logic;
 signal demux_to_update_eng_port_1_data_in_d       : std_logic_vector(79 downto 0);
 signal demux_to_update_eng_port_2_valid_in_d      : std_logic;
 signal demux_to_update_eng_port_2_data_in_d       : std_logic_vector(79 downto 0);
-signal demux_decode_for_internal_engine_r					: std_logic_vector(1 downto 0);	
-signal fr_fifo_high_valid_out_r               		: std_logic;
-signal fr_fifo_high_data_out_r                		: std_logic_vector(79 downto 0);
+signal demux_decode_for_internal_engines_r				: std_logic_vector(1 downto 0);	
+signal fr_fifo_low_valid_out_d               		  : std_logic;
+signal fr_fifo_low_data_out_d                		  : std_logic_vector(79 downto 0);
+signal fr_fifo_low_valid_out_r               		  : std_logic;
+signal fr_fifo_low_data_out_r                		  : std_logic_vector(79 downto 0);
 signal demux_to_h_mult_eng_port_1_valid_in_r  		: std_logic;
 signal demux_to_h_mult_eng_port_1_data_in_r   		: std_logic_vector(79 downto 0);		
 signal demux_to_h_mult_eng_port_2_valid_in_r  		: std_logic;
@@ -141,6 +149,7 @@ signal demux_to_update_eng_port_2_data_in_r       : std_logic_vector(79 downto 0
 
 -- mux from engines
 signal mux_decode_for_fr_engines_d                : std_logic_vector(1 downto 0);
+signal mux_decode_for_fr_engines_r                : std_logic_vector(1 downto 0);
 signal mux_fr_engines_valid_out_d                 : std_logic;
 signal mux_fr_engines_addr_out_d                  : std_logic_vector(16 downto 0);
 signal mux_fr_engines_data_out_d                  : std_logic_vector(79 downto 0);
@@ -189,16 +198,45 @@ signal mux_to_front_end_data_out_r                : std_logic_vector(79 downto 0
 
 	
 	
--- FIFO signals ???
+-- FIFO signals 
+signal fr_fifo_high_ovf_r                         : std_logic;
+signal fr_fifo_high_uf_r                          : std_logic;
+signal fr_fifo_low_ovf_r                          : std_logic;
+signal fr_fifo_low_uf_r                           : std_logic;
 
--- Module signals ???
+signal fr_fifo_high_ovf_pd                        : std_logic;
+signal fr_fifo_high_uf_pd                         : std_logic;
+
+signal fr_fifo_low_ovf_pd                         : std_logic;
+signal fr_fifo_low_uf_pd                          : std_logic;
+
+signal fr_mux_to_fifo_high_rd_d                   : std_logic;
+signal fr_mux_to_fifo_high_rd_r                   : std_logic;
+signal fr_mux_to_fifo_low_rd_d                    : std_logic;
+signal fr_mux_to_fifo_low_rd_r                    : std_logic;
+
+signal rd_en_fifo_high_fr_h_mult_eng_pr           : std_logic;
+signal rd_en_fifo_low_fr_h_mult_eng_pr            : std_logic;
+signal rd_en_fifo_high_fr_av_minus_b_eng_pr       : std_logic;
+signal rd_en_fifo_low_fr_av_minus_b_eng_pr        : std_logic;
+signal rd_en_fifo_high_fr_update_eng_pr           : std_logic;
+signal rd_en_fifo_low_fr_update_eng_pr            : std_logic;
+
+signal fr_fifo_high_data_out_pd                   : std_logic_vector(79 downto 0);
+signal fr_fifo_high_valid_out_pd                  : std_logic;	
+
+signal fr_fifo_low_data_out_pd                    : std_logic_vector(79 downto 0);
+signal fr_fifo_low_valid_out_pd                   : std_logic;
+
+-- rdy flags
+signal rdy_flag_fr_h_h_star_mult_eng_pr           : std_logic;
+signal rdy_flag_fr_av_minus_b_eng_pr              : std_logic;
+signal rdy_flag_fr_update_eng_pr                  : std_logic;
                         		
 		
 ------------------------------------------------- 
 -- For Synthesis and Verification                          
 -------------------------------------------------
-
-signal state_counter_1_r            : integer;
 
 -------------------------------------------------
 -- For Debug  Only
@@ -216,12 +254,12 @@ begin
 decode_logic_for_mux_demux_control : process(master_mode_upper_bits_r)
 begin
 	
-	case master_mode_upper_bits_r
+	case master_mode_upper_bits_r is
 		
 		
 		when  "000" => -- H processing
 			
-			mux_decode_for_fifo_d                <=  "00";
+			mux_decode_for_fifo_rd_d             <=  "00";
 			mux_decode_for_fifo_high_d           <=  "00";
 			demux_decode_for_trans_d             <=  '1';
 			demux_decode_for_internal_engines_d  <=  "00";
@@ -232,7 +270,7 @@ begin
 			
 		when  "001" => -- H* processing
 					
-			mux_decode_for_fifo_d                <=  "00";
+			mux_decode_for_fifo_rd_d             <=  "00";
 			mux_decode_for_fifo_high_d           <=  "01";
 			demux_decode_for_trans_d             <=  '1';
 			demux_decode_for_internal_engines_d  <=  "00";
@@ -243,7 +281,7 @@ begin
 			
 		when  "010" => -- Av-b processing
 								
-			mux_decode_for_fifo_d                <=  "01";
+			mux_decode_for_fifo_rd_d             <=  "01";
 			mux_decode_for_fifo_high_d           <=  "10";
 			demux_decode_for_trans_d             <=  '1';
 			demux_decode_for_internal_engines_d  <=  "01";
@@ -255,7 +293,7 @@ begin
 				
 		when  "011" => -- Update processing			
 					
-			mux_decode_for_fifo_d                <=   "10";
+			mux_decode_for_fifo_rd_d             <=   "10";
 			mux_decode_for_fifo_high_d           <=   "11";
 			demux_decode_for_trans_d             <=   '1';
 			demux_decode_for_internal_engines_d  <=   "10";
@@ -267,7 +305,7 @@ begin
 			
 		when  "100" => -- Bypass processing
 								
-			mux_decode_for_fifo_d                <=   "00"; -- set for h mult but a Don't care for bypass
+			mux_decode_for_fifo_rd_d             <=   "00"; -- set for h mult but a Don't care for bypass
 			mux_decode_for_fifo_high_d           <=   "00"; -- same as above
 			demux_decode_for_trans_d             <=   '0';
 			demux_decode_for_internal_engines_d  <=   "00"; -- same as above
@@ -278,7 +316,7 @@ begin
 			
 		when others => -- same as bypass proc
 							
-			mux_decode_for_fifo_d                <=   "00";
+			mux_decode_for_fifo_rd_d             <=   "00";
 			mux_decode_for_fifo_high_d           <=   "00";
 			demux_decode_for_trans_d             <=   '0';
 			demux_decode_for_internal_engines_d  <=   "00";
@@ -288,16 +326,18 @@ begin
 			mux_decode_to_front_end_d            <=   "10";
 	
 			
-	end case
+	end case;
   
 end process decode_logic_for_mux_demux_control;  
 -----------------------------------------
 -- Mux for FIFO control
 -----------------------------------------	 
-mux_control_select_to_rd_fifo : process(mux_decode_for_fifo_rd_r) 
+mux_control_select_to_rd_fifo : process(mux_decode_for_fifo_rd_r,
+	                                      rd_en_fifo_high_fr_h_mult_eng_pr,
+	                                      rd_en_fifo_low_fr_h_mult_eng_pr) 
 begin
  		
- 	case  mux_decode_control_for_fifo_r
+ 	case  mux_decode_for_fifo_rd_r is
  		
  		when "00" =>
  			
@@ -327,7 +367,15 @@ end process mux_control_select_to_rd_fifo;
 -----------------------------------------
 -- Mux & demux
 -----------------------------------------.	
- mux_data_select_to_fifo_high : process(mux_decode_for_fifo_high_r)
+ mux_data_select_to_fifo_high : process(mux_decode_for_fifo_high_r,
+ 	                                      from_h_mem_valid_i,
+ 	                                      from_h_mem_data_i,
+ 	                                      from_h_star_mem_valid_i,
+ 	                                      from_h_star_mem_data_i,
+ 	                                      from_b_mem_valid_i,
+ 	                                      from_b_mem_data_i,
+ 	                                      from_vk_mem_valid_i,
+ 	                                      from_vk_mem_data_i)
     	begin
     		
     	case mux_decode_for_fifo_high_r is
@@ -366,7 +414,9 @@ end process mux_control_select_to_rd_fifo;
     		
     end process mux_data_select_to_fifo_high;
     
- demux_data_select_for_trans_mem : process(demux_decode_for_trans_r)
+ demux_data_select_for_trans_mem : process(demux_decode_for_trans_r,
+ 	                                         from_trans_mem_valid_i,
+ 	                                         from_trans_mem_data_i)
  	   begin
  	   	
  	   case demux_decode_for_trans_r is
@@ -401,7 +451,11 @@ end process mux_control_select_to_rd_fifo;
  end process demux_data_select_for_trans_mem; 
  	
  
- demux_data_select_to_internal_engines : process(demux_decode_for_internal_engines_r)
+ demux_data_select_to_internal_engines : process(demux_decode_for_internal_engines_r,
+ 	                                               fr_fifo_high_valid_out_r,
+ 	                                               fr_fifo_high_data_out_r,
+ 	                                               fr_fifo_low_valid_out_r,
+ 	                                               fr_fifo_low_data_out_r)
  	    begin
  	    	
  	    case demux_decode_for_internal_engines_r is
@@ -493,7 +547,16 @@ end process mux_control_select_to_rd_fifo;
        	
    end process  demux_data_select_to_internal_engines;	
 
-mux_data_select_fr_engines : process(mux_decode_for_fr_engines_r)
+mux_data_select_fr_engines : process(mux_decode_for_fr_engines_r,
+	                                   from_h_h_star_eng_valid_pr,
+	                                   from_h_h_star_eng_addr_pr,
+	                                   from_h_h_star_eng_data_pr,
+	                                   from_av_minus_b_eng_valid_pr,
+	                                   from_av_minus_b_eng_addr_pr,
+	                                   from_av_minus_b_eng_data_pr,
+	                                   from_update_eng_valid_pr,
+	                                   from_update_eng_addr_pr,
+	                                   from_update_eng_data_pr)
    begin
     		
     	case mux_decode_for_fr_engines_r is
@@ -530,7 +593,10 @@ mux_data_select_fr_engines : process(mux_decode_for_fr_engines_r)
     end process mux_data_select_fr_engines;
         
     
-mux_data_select_to_buffer : process(mux_decode_to_buffer_r)
+mux_data_select_to_buffer : process(mux_decode_to_buffer_r,
+	                                  mux_fr_engines_valid_out_r,
+	                                  mux_fr_engines_addr_out_r,
+	                                  mux_fr_engines_data_out_r)
    begin
     		
     	case mux_decode_to_buffer_r is
@@ -561,7 +627,10 @@ mux_data_select_to_buffer : process(mux_decode_to_buffer_r)
     end process mux_data_select_to_buffer;
   
   
-mux_data_select_to_vk_mem : process(mux_decode_to_vk_mem_r)
+mux_data_select_to_vk_mem : process(mux_decode_to_vk_mem_r,
+	                                  mux_fr_engines_valid_out_r,
+	                                  mux_fr_engines_addr_out_r,
+	                                  mux_fr_engines_data_out_r)
    begin
     		
     	case mux_decode_to_vk_mem_r is
@@ -592,7 +661,11 @@ mux_data_select_to_vk_mem : process(mux_decode_to_vk_mem_r)
         
     
     
-mux_data_select_to_front_end : process(mux_decode_to_front_end_r)
+mux_data_select_to_front_end : process(mux_decode_to_front_end_r,
+	                                     mux_fr_engines_valid_out_r,
+	                                     mux_fr_engines_data_out_r,
+	                                     trans_mem_to_bypass_valid_out_d,
+	                                     trans_mem_to_bypass_data_out_d)
    begin
     		
     	case mux_decode_to_front_end_r is
@@ -715,9 +788,12 @@ begin
 		mux_decode_to_buffer_r                    <= '0';
 		mux_decode_to_front_end_r                 <= (others => '0');
 		
+		-- master mode bits	
+		master_mode_upper_bits_r                  <= (others => '0');
+		
   
 	
-  elsif(clk_i'event and  = '1') then
+  elsif(clk_i'event and  clk_i = '1') then
 	
 		-- To High FIFO from mem mux
 		mux_to_fifo_high_valid_in_r <= mux_to_fifo_high_valid_in_d;
@@ -782,9 +858,6 @@ begin
      	
     -- Dedicated FIFO & Control
    	
-   	fr_mux_to_fifo_high_rd_r                  <= '0';
-   	fr_mux_to_fifo_low_rd_r                   <= '0';
-   	
    	fr_fifo_high_ovf_r                        <= fr_fifo_high_ovf_pd;
    	fr_fifo_high_uf_r                         <= fr_fifo_high_uf_pd;
    	
@@ -801,6 +874,11 @@ begin
 		mux_decode_to_vk_mem_r                    <= mux_decode_to_vk_mem_d;
 		mux_decode_to_buffer_r                    <= mux_decode_to_buffer_d;
 		mux_decode_to_front_end_r                 <= mux_decode_to_front_end_d;
+		
+		
+		-- master mode bits	
+		master_mode_upper_bits_r                  <= master_mode_upper_bits_d;
+		
 	 	
   	
   end if;
@@ -810,7 +888,7 @@ end process register_proc;
 
 -----------------------------------------
 -- FIFOS
------------------------------------------.	
+-----------------------------------------	
 
 U0 : entity work.fifo_generator_0 
   PORT MAP (    
@@ -829,7 +907,7 @@ U0 : entity work.fifo_generator_0
     rd_rst_busy  =>   open -- out STD_LOGIC
   );
 
-end fifo_generator_0;
+
 
 
 
@@ -850,7 +928,7 @@ U1 : entity work.fifo_generator_0
     rd_rst_busy  =>   open -- out STD_LOGIC
   );
 
-end fifo_generator_0;
+
 
 
 -----------------------------------------
@@ -993,7 +1071,7 @@ gen_proc_h_h_mult_rdy_o          <= rdy_flag_fr_h_h_star_mult_eng_pr;
 gen_proc_av_minus_b_rdy_o        <= rdy_flag_fr_av_minus_b_eng_pr;
 gen_proc_vk_mem_rdy_o            <= rdy_flag_fr_update_eng_pr;
 
-                                     --     
+                                         
 
 -----------------------------------------------------------------
 --Verification             ,....,                    Verification
@@ -1023,127 +1101,6 @@ gen_proc_vk_mem_rdy_o            <= rdy_flag_fr_update_eng_pr;
 --Verification       Use in conjuntion with Matlab   Verification
 --Verification          file: verify_1d_fft.m        Verification
 -----------------------------------------------------------------
-
-  ----------------------------------------..
-  -- Counters
-  ----------------------------------------
-  -- counter for lower index
-  --state_counter_1 : process( clk_i, rst_i,m_axis_data_tlast_int_r)
-  --  begin
-  --    if  ( rst_i = '1' )   then
-  --        state_counter_1_r       <=  0 ;
-  --    elsif(  m_axis_data_tlast_int_r = '1' ) then
-  --        state_counter_1_r       <=  0 ;
-  --    elsif( clk_i'event and clk_i = '1') then
-  --      if ( m_axis_data_tvalid_int = '1') then
-  --        state_counter_1_r       <=  state_counter_1_r + 1;
-  --      end if;
-  --    end if;
-  --end process state_counter_1;
-  --counter for upper index
-  state_counter_2 : process( clk_i, rst_i,clear_state_counter_2_rr)
-    begin
-      if ( rst_i = '1' ) then
-          state_counter_2_r       <=  0 ;
-      elsif(clear_state_counter_2_rr = '1') then
-          state_counter_2_r       <=  0 ;
-      elsif( clk_i'event and clk_i = '1') then
-         if ( m_axis_data_tlast_int = '1') then
-          state_counter_2_r       <=  state_counter_2_r + 1;
-         end if;
-      end if;
-  end process state_counter_2;
-  
-  ----------------------------------------
-  -- register mlast tvalid
-  ----------------------------------------
-    m_axis_data_tlast_reg : process(clk_i, rst_i)
-  	begin
-  		if ( rst_i = '1') then
-  			 m_axis_data_tlast_int_r  <=  '0';
-
-  	  elsif(clk_i'event and clk_i  = '1') then
-         m_axis_data_tlast_int_r  <=  m_axis_data_tlast_int;
-  	  end if;
-  end process m_axis_data_tlast_reg;
-  
-   ----------------------------------------
-  -- Decode terminal count
-  ----------------------------------------
-  decode_terminal_count : process(state_counter_2_r)
-  	begin
-  		if (  state_counter_2_r = MAX_SAMPLES ) then
-  			clear_state_counter_2_d <= '1';
-  	  else
-  	  	clear_state_counter_2_d <= '0';
-  	  end if;
-  end process decode_terminal_count;
-  
-  ----------------------------------------
-  -- Delay terminal count
-  ----------------------------------------
-   delay_terminal_count : process(clk_i, rst_i)
-  	begin
-  		if ( rst_i = '1') then
-  			clear_state_counter_2_r  <=  '0';
-  			clear_state_counter_2_rr <=  '0';
-  	  elsif(clk_i'event and clk_i  = '1') then
-  	  	clear_state_counter_2_r  <=  clear_state_counter_2_d;
-  	  	clear_state_counter_2_rr <=  clear_state_counter_2_r; 
-  	  end if;
-  end process delay_terminal_count;
-                
-  -----------------------------------------------------------------------
-  -- Store FFT outputs to memory; We are reading an array built by  process record_outputs
-  -----------------------------------------------------------------------.
-  RamProcRawData1D : process(clk_i,rst_i, m_axis_data_tlast_int)
-    begin
-  	  if ( rst_i = '1' ) then
-         --fft_raw_mem <= (Others => '0');
-         dummy <= '1';
-      elsif( ( m_axis_data_tlast_int = '1') and (master_mode_i = "00000") )then
-         --fft_raw_mem <= (Others => '0');
-         fft_raw_mem_1d(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);
-  	  elsif( (m_axis_data_tvalid_int = '1') and (master_mode_i = "00000") )then 		
-  			 fft_raw_mem_1d(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);  				  
-  		end if;
-   end process RamProcRawData1D;  
-    
-  RamProcRawData2D : process(clk_i,rst_i, m_axis_data_tlast_int)
-    begin
-  	  if ( rst_i = '1' ) then
-         --fft_raw_mem <= (Others => '0');
-         dummy <= '1';
-      elsif( ( m_axis_data_tlast_int = '1') and (master_mode_i = "00001") )then
-         --fft_raw_mem <= (Others => '0');
-         fft_raw_mem_2d(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);
-  	  elsif( (m_axis_data_tvalid_int = '1') and (master_mode_i = "00001") )then 		
-  			 fft_raw_mem_2d(state_counter_2_r,state_counter_1_r) <= dual_port_data_int(73 downto 40) & dual_port_data_int(33 downto 0);  				  
-  		end if;
-   end process RamProcRawData2D;  
-    
-  
-  -------------------------------------------------------
-	-- Write to a file the mem contents to check init data
-	-------------------------------------------------------  
-data_read : process(clear_state_counter_2_rr)
-
-  --report " verfiication for 1-D FFTs enabled";
-
-  begin
-  	
-   if ( (clear_state_counter_2_rr  = '1') and (master_mode_i = "00000") ) then -- Have completed MAX_SAMPLE FFT Computations( 1-D)o
-        write_fft_1d_raw_done <= writeToFileMemRawContentsFwd1D(fft_raw_mem_1d,fft_bin_seq_addr);	
-       report " Done writing FFTs init data for one frame";
-   end if;
-   	
-    if ( (clear_state_counter_2_rr  = '1') and (master_mode_i = "00001") ) then -- Have completed MAX_SAMPLE FFT Computations( 1-D)o
-        write_fft_2d_test_raw_done <= writeToFileMemRawContentsFwd2D(fft_raw_mem_2d,fft_bin_seq_addr);	
-       report " Done writing FFTs test fdbk data for one frame";
-   end if;
-   	     
-
-end process data_read;
 
 
           	

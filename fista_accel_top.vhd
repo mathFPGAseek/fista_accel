@@ -135,6 +135,9 @@ architecture struct of fista_accel_top is
   signal sram_addr_int                     : std_logic_vector(15 downto 0);
   signal data_fr_mem_intf_to_sys           : std_logic_vector(79 downto 0);
   signal valid_fr_mem_intf_to_sys          : std_logic;
+  signal data_fr_mem_intf_to_gen_proc      : std_logic_vector(79 downto 0);
+  signal valid_fr_mem_intf_to_gen_proc     : std_logic;
+  
   	
   -- debug signals
   signal dbg_rd_r                          :std_logic_vector(511 downto 0);             
@@ -333,8 +336,52 @@ begin
     
     -----------------------------------------
     -- general procesor engine  (back_end)
-    -----------------------------------------	
+    -----------------------------------------.	
     
+    u7 : entity work.gen_proc_module 
+    --generic(
+	  --   g_USE_DEBUG_i  : in natural := 1);
+    PORT MAP(
+
+	  clk_i               	         	=>      clk_i , --: in std_logic;
+    rst_i               	         	=>      rst_i, --: in std_logic;
+                                    
+    master_mode_i                  	=>      ('1' & '0' & '0' & master_mode_int),--: in std_logic_vector(6 downto 0); -- Bits 5 & 6 describe engine mode
+  	                             
+      --inputs                      
+    from_trans_mem_valid_i          =>       valid_fr_mem_intf_to_gen_proc, --: in std_logic;
+    from_trans_mem_data_i           =>       data_fr_mem_intf_to_gen_proc, --: in std_logic_vector(79 downto 0); 
+                                  
+    from_h_mem_valid_i              =>       '0', --: in std_logic;
+    from_h_mem_data_i               =>       ( others => '0'), --: in std_logic_vector(79 downto 0);
+    	                             
+    from_h_star_mem_valid_i         =>       '0', --: in std_logic;
+    from_h_star_mem_data_i          =>       (others => '0'), --: in std_logic_vector(79 downto 0);    	
+        	                          
+    from_b_mem_valid_i              =>       '0', --: in std_logic;
+    from_b_mem_data_i               =>       (others => '0'), --: in std_logic_vector(79 downto 0);   	
+         	                         
+    from_vk_mem_valid_i             =>       '0', --: in std_logic;
+    from_vk_mem_data_i              =>       (others => '0'), --: in std_logic_vector(79 downto 0);      
+  	                               
+    -- outputs                      
+    to_buffer_trans_mem_port_wr_o   =>       open , --: out std_logic;  
+    to_buffer_trans_mem_port_addr_o =>       open, --: out std_logic_vector(16 downto 0);
+    to_buffer_trans_mem_port_data_o =>       open, --: out std_logic_vector(79 downto 0);
+                                   
+    to_buffer_vk_mem_port_wr_o      =>       open, --: out std_logic;  
+    to_buffer_vk_mem_port_addr_o    =>       open, --: out std_logic_vector(16 downto 0);
+    to_buffer_vk_mem_port_data_o    =>       open, --: out std_logic_vector(79 downto 0); 	
+   	                               
+    to_front_end_port_wr_o          =>       valid_fr_mem_intf_to_sys, --: out std_logic;  
+    to_front_end_port_data_o        =>       data_fr_mem_intf_to_sys, --: out std_logic_vector(79 downto 0);
+                                    
+    gen_proc_h_h_mult_rdy_o         =>       open, --: out std_logic;
+    gen_proc_av_minus_b_rdy_o       =>       open, --: out std_logic;
+    gen_proc_vk_mem_rdy_o           =>       open --: out std_logic
+                                   
+    );
+
     
     -----------------------------------------
     --  mem_in_buffer
@@ -367,8 +414,8 @@ begin
   wea   => sram_wr_en_vec_int,                         --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
   addra => sram_addr_int,                          --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
   dina  => data_to_mem_intf_fr_mem_in_buffer,      --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
-  douta => data_fr_mem_intf_to_sys,                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
-  vouta => valid_fr_mem_intf_to_sys,
+  douta => data_fr_mem_intf_to_gen_proc,                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  vouta => valid_fr_mem_intf_to_gen_proc,
   dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
   );
 
