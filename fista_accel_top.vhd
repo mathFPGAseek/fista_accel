@@ -137,10 +137,24 @@ architecture struct of fista_accel_top is
   signal valid_fr_mem_intf_to_sys          : std_logic;
   signal data_fr_mem_intf_to_gen_proc      : std_logic_vector(79 downto 0);
   signal valid_fr_mem_intf_to_gen_proc     : std_logic;
+  signal data_fr_big_h_mem_to_gen_proc     : std_logic_vector(79 downto 0);
+  signal valid_fr_big_h_mem_to_gen_proc    : std_logic;
   
   	
-  -- debug signals
-  signal dbg_rd_r                          :std_logic_vector(511 downto 0);             
+  -- debug signals : All signals go to mem,gen_proc, and master
+                  -- DEBUG_STATE 
+                  -- := 001 -> DEBUG H      -> {load H, Load F(v)}      : trans  & f_h memory
+                  -- := 010 -> DEBUG Inv A  -> {Load (H x F(v))}        : trans memory  
+                  -- := 011 -> DEBUG Av-B   -> {Load Av, Load B}        : trans & b memory
+                  -- := 100 -> DEBUG AH     -> {Load crop&pad(AV-b)}    : trans memory
+                  -- := 101 -> DEBUG H*     -> {Load H* , Load FH(v))}  : trans & f_adj memory
+                  -- := 110 -> DEBUG InvAH  -> {Load (H* x FH(v))}      : trans memory
+                  -- := 111 -> DEBUG update -> {Load Grad, Vk}          : trans & vk memory
+                  
+  constant DEBUG_STATE                     : std_logic_vector(2 downto 0) := "001"; -- DEBUG H
+  	
+  	
+  signal dbg_rd_r                          : std_logic_vector(511 downto 0);             
   	
   constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
   constant ONE                             : natural := 1; -- for selecting  ONE = use debug
@@ -352,8 +366,8 @@ begin
     from_trans_mem_valid_i          =>       valid_fr_mem_intf_to_gen_proc, --: in std_logic;
     from_trans_mem_data_i           =>       data_fr_mem_intf_to_gen_proc, --: in std_logic_vector(79 downto 0); 
                                   
-    from_h_mem_valid_i              =>       '0', --: in std_logic;
-    from_h_mem_data_i               =>       ( others => '0'), --: in std_logic_vector(79 downto 0);
+    from_h_mem_valid_i              =>       valid_fr_big_h_mem_to_gen_proc, --: in std_logic;
+    from_h_mem_data_i               =>       data_fr_big_h_mem_to_gen_proc, --: in std_logic_vector(79 downto 0);
     	                             
     from_h_star_mem_valid_i         =>       '0', --: in std_logic;
     from_h_star_mem_data_i          =>       (others => '0'), --: in std_logic_vector(79 downto 0);    	
@@ -386,7 +400,10 @@ begin
     -----------------------------------------
     --  mem_in_buffer
     -----------------------------------------.	
-    u4 : entity work.mem_in_buffer_module 
+    u4 : entity work.mem_in_buffer_module
+    GENERIC MAP(
+	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
+	      debug_state_i  =>  ZERO) -- 0 = no debug , 1 = debug 
     PORT MAP( 
     clk_i                     =>     clk_i,             --: in STD_LOGIC;
     rst_i               	    =>     rst_i,--: in std_logic;
@@ -406,14 +423,18 @@ begin
   sram_wr_en_vec_int(0) <= sram_wr_en_int;
 
   	  	
-  u6 : entity work.mem_transpose_module 
+  u6 : entity work.mem_transpose_module
+  GENERIC MAP(
+	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
+	      debug_state_i  =>  ZERO) -- 0 = no debug , 1 = debug
+ 
   PORT MAP ( 
   clk_i => clk_i,
-  rst_i => rst_i,                                  --clka : in STD_LOGIC;
-  ena   => sram_en_int,                            --ena : in STD_LOGIC;
-  wea   => sram_wr_en_vec_int,                         --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
-  addra => sram_addr_int,                          --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
-  dina  => data_to_mem_intf_fr_mem_in_buffer,      --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
+  rst_i => rst_i,                                        --clka : in STD_LOGIC;
+  ena   => sram_en_int,                                  --ena : in STD_LOGIC;
+  wea   => sram_wr_en_vec_int,                           --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
+  addra => sram_addr_int,                                --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
+  dina  => data_to_mem_intf_fr_mem_in_buffer,            --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
   douta => data_fr_mem_intf_to_gen_proc,                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
   vouta => valid_fr_mem_intf_to_gen_proc,
   dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
@@ -422,18 +443,24 @@ begin
     -----------------------------------------
     --  f_h  memory
     -----------------------------------------	
+     	  	
+  u8 : entity work.mem_big_h_module 
+  PORT MAP ( 
+  clk_i => clk_i,
+  rst_i => rst_i,                                        --clka : in STD_LOGIC;
+  ena   => sram_en_int,                                          --ena : in STD_LOGIC;
+  wea   => dummy_input_3,                                --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
+  addra => sram_addr_int,                               --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
+  dina  => (others=> '0'),                               --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
+  douta => data_fr_big_h_mem_to_gen_proc,                --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  vouta => valid_fr_big_h_mem_to_gen_proc,
+  dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
+  );
+
     
     -----------------------------------------
     --  f_h adj memory
     -----------------------------------------	
-    debug_rd_data : process(clk_i, rst_i)
-    	begin
-    		if(rst_i = '1') then
-    			dbg_rd_r   <= (others=> '0');
-    		elsif(clk_i'event and clk_i = '1') then
-    			dbg_rd_r <= add_rd_data_i;
-    		end if;
-    end process debug_rd_data;
     
     -----------------------------------------
     --  b fdbk memory
@@ -443,6 +470,20 @@ begin
     -----------------------------------------
     --  v(k) memory
     -----------------------------------------	
+    
+    
+    
+    -----------------------------------------
+    --  Misc.
+    -----------------------------------------	
+     debug_rd_data : process(clk_i, rst_i)
+    	begin
+    		if(rst_i = '1') then
+    			dbg_rd_r   <= (others=> '0');
+    		elsif(clk_i'event and clk_i = '1') then
+    			dbg_rd_r <= add_rd_data_i;
+    		end if;
+    end process debug_rd_data;
     
     
     -----------------------------------------

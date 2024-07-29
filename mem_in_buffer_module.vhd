@@ -2,6 +2,10 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity mem_in_buffer_module is
+	generic(
+  	       debug_state_i : in natural := 0);
+  
+  
   Port ( 
     clk_i : in STD_LOGIC;
     rst_i : in STD_LOGIC;

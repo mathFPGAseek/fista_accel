@@ -5,6 +5,19 @@ use ieee.std_logic_textio.all;
 
 
 entity mem_transpose_module is
+	               -- debug signals : All signals go to mem,gen_proc, and master
+                  -- DEBUG_STATE
+                  -- := 000 -> NO debug 
+                  -- := 001 -> DEBUG H      -> {Load F(v), Load H}      : trans  & f_H memory
+                  -- := 010 -> DEBUG Inv A  -> {Load (H x F(v))}        : trans memory  
+                  -- := 011 -> DEBUG Av-B   -> {Load Av, Load B}        : trans & b memory
+                  -- := 100 -> DEBUG AH     -> {Load crop&pad(AV-b)}    : trans memory
+                  -- := 101 -> DEBUG H*     -> {Load FH(v)), Load H*}   : trans & f_adj memory
+                  -- := 110 -> DEBUG InvAH  -> {Load (H* x FH(v))}      : trans memory
+                  -- := 111 -> DEBUG update -> {Load Grad, Vk}          : trans & vk memory
+  generic(
+  	       debug_state_i : in natural := 0);
+  
   Port (
     clk_i : in STD_LOGIC; 
     rst_i : in STD_LOGIC;
@@ -29,6 +42,8 @@ architecture stub of mem_transpose_module is
 
 -- For verification and synthesis
 signal data_out_r                   : std_logic_vector( 79 downto 0);
+signal data_out_no_debug_default_r  : std_logic_vector( 79 downto 0);
+signal data_out_no_debug_fwd_2d_A_r        : std_logic_vector( 79 downto 0);
 signal enable_read_rr               : std_logic;
 
 
@@ -141,17 +156,37 @@ begin
   -----------------------------------------
   -- Transpose mem_intf
   -----------------------------------------	
-  	
-  u1 : entity work.blk_mem_image_gen_0 
-  PORT MAP ( 
-  clka  => clk_i,                     --clka : in STD_LOGIC;
-  ena   => ena,                       --ena : in STD_LOGIC;
-  wea   => wea,                       --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
-  addra => addra,                     --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
-  dina  => dina,                      --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
-  douta => data_out_r                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
-  );
+  g_use_u1_no_debug : if debug_state_i = 0 generate -- default condition
+  		
+  	u1 : entity work.blk_mem_image_gen_0 
+  	PORT MAP ( 
+  	clka  => clk_i,                                      --clka : in STD_LOGIC;
+  	ena   => ena,                                        --ena : in STD_LOGIC;
+  	wea   => wea,                                        --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
+  	addra => addra,                                      --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
+  	dina  => dina,                                       --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
+  	douta => data_out_no_debug_default_r                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  	);
 
+    data_out_r <= data_out_no_debug_default_r;
+    
+ end generate g_use_u1_no_debug;
+ 
+ g_use_u2_fwd_2d_A_debug : if debug_state_i = 1 generate -- debug H
+  		
+  	u2 : entity work.blk_mem_fwd_2d_A_image_gen_0 
+  	PORT MAP ( 
+  	clka  => clk_i,                                      --clka : in STD_LOGIC;
+  	ena   => ena,                                        --ena : in STD_LOGIC;
+  	wea   => wea,                                        --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
+  	addra => addra,                                      --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
+  	dina  => dina,                                       --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
+  	douta => data_out_no_debug_fwd_2d_A_r                --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  	);
+
+    data_out_r <= data_out_no_debug_fwd_2d_A_r;
+    
+ end generate g_use_u2_fwd_2d_A_debug;
 
 -----------------------------------------------------------------
 -----------------------------------------------------------------    
