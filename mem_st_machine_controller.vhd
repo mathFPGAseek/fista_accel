@@ -81,7 +81,7 @@ ENTITY mem_st_machine_controller is
 --	    generic_i  : in natural);
     PORT (
 
-	clk_i               	         : in std_logic;
+	  clk_i               	         : in std_logic;
     rst_i               	         : in std_logic;
     
     master_mode_i                  : in std_logic_vector(4 downto 0);

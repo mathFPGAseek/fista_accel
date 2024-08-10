@@ -37,7 +37,7 @@ entity update_eng is
    
     clk_i                             : in std_logic;
 		rst_i                             : in std_logic;
-		master_mode_i                     : in std_logic_vector(7 downto 0);
+		master_mode_i                     : in std_logic_vector(4 downto 0);
 		       
 		-- FIFO inputs
 		fifo_high_ovf_i                   : in std_logic;

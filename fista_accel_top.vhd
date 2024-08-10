@@ -360,7 +360,7 @@ begin
 	  clk_i               	         	=>      clk_i , --: in std_logic;
     rst_i               	         	=>      rst_i, --: in std_logic;
                                     
-    master_mode_i                  	=>      ('1' & '0' & '0' & master_mode_int),--: in std_logic_vector(6 downto 0); -- Bits 5 & 6 describe engine mode
+    master_mode_i                  	=>      (master_mode_int),--: in std_logic_vector(6 downto 0); -- Bits 5 & 6 describe engine mode
   	                             
       --inputs                      
     from_trans_mem_valid_i          =>       valid_fr_mem_intf_to_gen_proc, --: in std_logic;
