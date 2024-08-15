@@ -123,7 +123,8 @@ architecture struct of fista_accel_top is
   	
   signal turnaround_int                    : std_logic;
   
-  signal master_mode_int                   : std_logic_vector(4 downto 0); 
+  signal master_mode_int                   : std_logic_vector(4 downto 0);
+  signal master_mode_upper_bits_int        : std_logic_vector(4 downto 1); 
   
   signal dummy_input_1                     : std_logic := '1';
   signal dummy_input_2                     : std_logic := '1';
@@ -150,7 +151,7 @@ architecture struct of fista_accel_top is
                   -- := 101 -> DEBUG H*     -> {Load H* , Load FH(v))}  : trans & f_adj memory
                   -- := 110 -> DEBUG InvAH  -> {Load (H* x FH(v))}      : trans memory
                   -- := 111 -> DEBUG update -> {Load Grad, Vk}          : trans & vk memory
-                  
+  signal   event_to_mem                    : std_logic;                
   constant DEBUG_STATE                     : std_logic_vector(2 downto 0) := "001"; -- DEBUG H
   	
   	
@@ -202,7 +203,9 @@ begin
         ddr_intf_mux_wr_sel_o                       => dbg_ddr_intf_mux_wr_sel_o, --: out std_logic_vector(1 downto 0);
         ddr_intf_demux_rd_sel_o                     => dbg_ddr_intf_demux_rd_sel_o, --: out std_logic_vector(2 downto 0);
         
-        mem_shared_in_ch_state_i                    => dual_port_wr_int(0),                                         
+        --mem_shared_in_ch_state_i                    => dual_port_wr_int(0),
+        mem_shared_in_ch_state_i                    => event_to_mem,                                         
+                                         
         mem_shared_in_enb_o                         => dbg_mem_shared_in_enb_int, --: out std_logic;
         mem_shared_in_addb_o                        => dbg_mem_shared_in_addb_int, --: out std_logic_vector(7 downto 0);
                                                   
@@ -439,7 +442,34 @@ begin
   vouta => valid_fr_mem_intf_to_gen_proc,
   dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
   );
-
+  
+  --------------------------------------------------------------------------------------------------------------
+  -- DEBUG DEBUG DEBUG        Temp logic !!! For Debuggin col rd for H proc                 DEBUG DEBUG DEBUG --
+  --------------------------------------------------------------------------------------------------------------
+  -- Debug theory: we go to H state which issues a turnaround and master then outputs "0001" = H state and '1'=col
+  mux_select_event_to_mem : process(master_mode_int,
+  	                                dual_port_wr_int,
+  	                                valid_fr_mem_intf_to_gen_proc  
+  	)
+  	begin
+  		
+  		case master_mode_int is
+  			
+  			when "00000" => -- 1d fft
+  				event_to_mem  <= dual_port_wr_int(0);
+  					
+  		  when "00001" => --2d fft
+  		  	event_to_mem  <= dual_port_wr_int(0);
+  			
+  			when "00011" => -- H proc
+  				event_to_mem <= valid_fr_mem_intf_to_gen_proc;
+  			
+  			when others =>
+  				event_to_mem <= '0';
+  				
+  	 end case;
+  end process	mux_select_event_to_mem; 
+  		
     -----------------------------------------
     --  f_h  memory
     -----------------------------------------	
