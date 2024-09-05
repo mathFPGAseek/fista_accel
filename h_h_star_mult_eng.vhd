@@ -91,9 +91,53 @@ begin
 		       
 		-- rdy flag
 		rdy_o                 <= '0';
-	
+ 
+    -----------------------------------------.
+    -- H H_star St mach contoller
+    -----------------------------------------	 
+    --U0 : entity work.h_hstar_inbound_st_machine_controller            
+    --PORT MAP(                                
+    --	                                   
+    --	  clk_i                  => clk_i,        -- : in std_logic; --clk_i,
+    --    rst_i                  => rst_i,        -- : in std_logic; --rst_i,
+    --                         
+    --    master_mode_i          => master_mode_i,-- : in std_logic_vector(4 downto 0);                                                                                      
+    --    valid_i                => port_1_valid_in_i,  -- : in std_logic; --
+    --                               
+    --    s_axis_config_valid_o  => s_axis_config_valid_int,-- : out std_logic;
+    --    s_axis_config_trdy_i   => s_axis_config_trdy_int,-- : in std_logic;
+    --    s_axis_config_tdata_o  => s_axis_config_tdata_int,-- : out std_logic_vector(15 downto 0);
+    --                        
+    --    s_axis_data_tvalid_o   => s_axis_data_tvalid_int,-- : out std_logic;
+    --    s_axis_data_trdy_i     => s_axis_data_trdy_int,-- : in std_logic;
+    --    s_axis_data_tlast_o    => s_axis_data_tlast_int,-- : out std_logic;
+    --    
+    --    m_axis_data_tlast_i    => m_axis_data_tlast_int,
+    --    
+    --    h_h_star_rdy_o         => rdy_o, 
+    --                        
+    --    stall_warning_o        => stall_warning_int-- : out std_logic;                                   
+    --);
+    	
 
-
-
-
+--U1 : entity work.cmpy_0 
+--PORT MAP ( 
+--    aclk                  =>    clk_i, --: in STD_LOGIC;
+--    aresetn               =>    rst_i, --: in STD_LOGIC;
+--    s_axis_a_tvalid       =>    port_1_valid_in_i, --: in STD_LOGIC;
+--    s_axis_a_tlast        =>    s_axis_a_tlast_int, --: in STD_LOGIC;
+--    s_axis_a_tdata        =>    port_1_data_in_i, --: in STD_LOGIC_VECTOR ( 79 downto 0 );
+--    s_axis_b_tvalid       =>    port_2_valid_in_i, --: in STD_LOGIC;
+--    s_axis_b_tlast        =>    s_axis_b_tlast_int, --: in STD_LOGIC;
+--    s_axis_b_tdata        =>    port_2_data_in_i, --: in STD_LOGIC_VECTOR ( 79 downto 0 );
+--    m_axis_dout_tvalid    =>    m_axis_dout_tvalid_int, --: out STD_LOGIC;
+--    m_axis_dout_tlast     =>    m_axis_dout_tlast_int, --: out STD_LOGIC;
+--    m_axis_dout_tdata     =>    m_axis_dout_tdata_int --: out STD_LOGIC_VECTOR ( 79 downto 0 )
+--  );                     
+                       
+                       
+                        
+                       
+                     
+                      
 end architecture struct;	

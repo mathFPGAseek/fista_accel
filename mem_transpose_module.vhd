@@ -21,6 +21,7 @@ entity mem_transpose_module is
   Port (
     clk_i : in STD_LOGIC; 
     rst_i : in STD_LOGIC;
+    master_mode_i : in STD_LOGIC_VECTOR ( 4 downto 0 );
     ena : in STD_LOGIC;
     wea : in STD_LOGIC_VECTOR ( 0 to 0 );
     addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
@@ -57,15 +58,18 @@ signal enable_read_rr               : std_logic;
 
 constant MAX_SAMPLES : integer := 2**8;  -- maximum number of samples in a frame
 --constant IP_WIDTH    : integer := 34;
-constant IP_WIDTH    : integer := 40;
+constant IP_WIDTH    : integer := 34;
 constant MEM_WIDTH   : integer := IP_WIDTH*2 -1;
 type     MEM_ARRAY is array(0 to  MAX_SAMPLES-1,0 to MAX_SAMPLES-1) of std_logic_vector(MEM_WIDTH downto  0);
 type     bit_addr is array ( 0 to MAX_SAMPLES-1) of integer;
 type     result_type is ( '0', '1');
 signal   fft_raw_mem : MEM_ARRAY;
+signal   h_read_mem : MEM_ARRAY;
 file     write_file : text;
 signal   dummy  : std_logic := '1';
+signal   dummy_h_read  : std_logic := '1';
 signal   write_fft_1d_raw_done : result_type;
+signal   write_h_init_done     : result_type;
 
 constant PAD_ZEROS  : std_logic_vector(5 downto 0) := (others=> '0');
 	
@@ -115,7 +119,7 @@ signal qualify_state_int            : std_logic;
 	   variable done         : integer;
 	   --variable k            : integer;
 	   --variable fft_spec     : MEM_ARRAY;
-	   variable data_write_var : bit_vector(79 downto 0);
+	   variable data_write_var : bit_vector(67 downto 0);
 	   begin
 	   	 	--for i in  0 to MAX_SAMPLES-1 loop
 	      --   for j in 0 to MAX_SAMPLES-1 loop
@@ -139,6 +143,43 @@ signal qualify_state_int            : std_logic;
 	      report" Done writing to file ";	  
   	    return result;  	       
   end function  writeToFileMemRawContents;
+  
+  
+	-------------------------------------------------
+	-- Function Write to a file the mem contents to check Read of Start of H processing
+	-------------------------------------------------
+  impure function writeToFileMemRawContentsHRead(  signal fft_mem   : in MEM_ARRAY) return result_type is
+  
+	   variable result       : result_type;    
+	   variable mem_line_var : line;
+	   variable done         : integer;
+	   --variable k            : integer;
+	   --variable fft_spec     : MEM_ARRAY;
+	   variable data_write_var : bit_vector(67 downto 0);
+	   begin
+	   	 	--for i in  0 to MAX_SAMPLES-1 loop
+	      --   for j in 0 to MAX_SAMPLES-1 loop
+	      --      k := fft_bin_center_addr(j);
+	      --      fft_spec(i,k) := (fft_mem(i,j));
+	      --   end loop;
+	      --end loop;
+	     file_open(write_file,"col_rd_h_mem_vectors.txt",write_mode);
+	     report" File Opened for writing ";
+	          for i in  0 to MAX_SAMPLES-1 loop
+	              for j in 0 to MAX_SAMPLES-1 loop
+	                  --data_write_var := to_bitvector(fft_spec(i,j));
+	                  data_write_var := to_bitvector(fft_mem(i,j));
+	                  write(mem_line_var ,data_write_var);
+	                  writeline(write_file,mem_line_var);                  
+	                  --report" Start writing to file ";
+	              end loop;
+	          end loop;
+	      done := 1;
+	      file_close(write_file);
+	      report" Done writing to file ";	  
+  	    return result;  	       
+  end function  writeToFileMemRawContentsHRead;
+
 
 
 -------------------------------------------------	
@@ -381,7 +422,7 @@ begin
 
     begin
   	  if ( rst_i = '1' ) then
-         --fft_raw_mem <= (Others => '0');
+         --fft_raw_mem <= (Others => '0'); 
          dummy <= '1';
       --elsif(falling_valid_event_d = '1') then
       --   --fft_raw_mem <= (Others => '0');
@@ -390,10 +431,20 @@ begin
   	  elsif enable_read_rr = '1' then 		
    		--fft_raw_mem(state_counter_1_r,state_counter_2_r) <= data_out_r;  				  	  
   		--fft_raw_mem(state_counter_1_rrr,state_counter_2_rrr) <= data_out_r;  
-  		  fft_raw_mem(state_counter_1_rrr,state_counter_2_r) <= data_out_r;  				  
+  		  fft_raw_mem(state_counter_1_rrr,state_counter_2_r) <= data_out_r(73 downto 40) & data_out_r(33 downto 0);  				  			  
+				  
 				  
   		end if;
    end process RamProcRawData;  
+  
+  RamProcRawHReadData : process(clk_i,rst_i)
+    begin
+  	  if ( rst_i = '1' ) then
+         dummy_h_read <= '1';
+     elsif( (enable_read_rr = '1') and (master_mode_i = "00011") )then 			
+   		  h_read_mem(state_counter_1_rrr,state_counter_2_r) <= data_out_r(73 downto 40) & data_out_r(33 downto 0);  				  			  
+  		end if;
+   end process RamProcRawHReadData;  
     
   -------------------------------------------------
 	-- Write to a file the mem contents to check
@@ -410,6 +461,19 @@ data_read : process(clear_state_counter_2_rr)
    end if;
 end process data_read;
 
+
+data_h_read : process(clear_state_counter_2_rr)
+
+  --report " This is a read of one frame
+
+  begin
+   if ( (clear_state_counter_2_rr  = '1') and (master_mode_i = "00011") ) then
+        write_h_init_done   <= writeToFileMemRawContentsHRead(fft_raw_mem);	
+       report " Done Reads for one frame of H Init";
+   end if;
+end process data_h_read;
+
+ 
  	 	
   ----------------------------------------
   -- Assignments

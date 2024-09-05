@@ -134,7 +134,7 @@ BEGIN
   			
   		when "0011" =>
   		
-  		 master_mode_d   <= "00000";	 	
+  		 master_mode_d   <= "00011";	 	
  
   			
   		when others => 

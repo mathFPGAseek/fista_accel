@@ -434,6 +434,7 @@ begin
   PORT MAP ( 
   clk_i => clk_i,
   rst_i => rst_i,                                        --clka : in STD_LOGIC;
+  master_mode_i =>   master_mode_int,                    --: in std_logic_vector(4 downto 0);
   ena   => sram_en_int,                                  --ena : in STD_LOGIC;
   wea   => sram_wr_en_vec_int,                           --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
   addra => sram_addr_int,                                --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
