@@ -54,6 +54,9 @@ USE ieee.numeric_std.ALL;
 entity mem_controller is
 --generic(
 --	    generic_i  : in natural);
+    generic (
+    	    g_USE_DEBUG_H_INIT_i : in natural := 0
+    );
     port (
 
 	  clk_i               	         : in std_logic;
@@ -194,6 +197,9 @@ begin
     -----------------------------------------	
     
     u0 : entity work.mem_st_machine_controller
+    GENERIC MAP(
+    	         g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
+    )
     PORT MAP(
     	
     	  clk_i                                       => clk_i, --: in std_logic;

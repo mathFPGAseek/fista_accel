@@ -28,7 +28,10 @@ USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 
     
-entity master_st_machine_controller is           
+entity master_st_machine_controller is
+	generic (
+		       g_USE_DEBUG_H_INIT_i : in natural := 0
+	        );           
     port(                                
     	                                   
     	  clk_i                  : in std_logic; --clk_i, --: in std_logic;
@@ -150,6 +153,7 @@ BEGIN
   -----------------------------------------
   -- Main State Machine (Reg) Master
   -----------------------------------------
+  g_use_u1_no_debug : if g_USE_DEBUG_H_INIT_i = 0 generate -- default condition
 
     st_mach_controller_registers : process( clk_i, rst_i )
       begin
@@ -171,8 +175,37 @@ BEGIN
         ps_controller               <= ns_controller;       			           	
             	
        end if;
-   end process st_mach_controller_registers;       	
+   end process st_mach_controller_registers;
   
+ end generate g_use_u1_no_debug;
+ 
+ g_use_u1_h_init_debug : if g_USE_DEBUG_H_INIT_i = 1 generate -- default condition
+
+    st_mach_controller_registers : process( clk_i, rst_i )
+      begin
+       if( rst_i = '1') then
+       	
+       	
+        -- decoder 
+        decoder_st_r                <= "0001"; -- init state
+        master_mode_r               <= (others=>'0');
+        
+        ps_controller               <= state_wr_fwd_2d_A;
+        			
+       elsif(clk_i'event and clk_i = '1') then
+         
+        -- decoder
+        decoder_st_r                <= decoder_st_d;
+        master_mode_r               <= master_mode_d;
+        
+        ps_controller               <= ns_controller;       			           	
+            	
+       end if;
+   end process st_mach_controller_registers;
+  
+          	
+ end generate g_use_u1_h_init_debug;
+ 
   
     -----------------------------------------.
     --  Assignments

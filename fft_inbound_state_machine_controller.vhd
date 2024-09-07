@@ -28,7 +28,10 @@ USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 
     
-entity fft_inbound_st_machine_controller is           
+entity fft_inbound_st_machine_controller is
+	  --generic(
+	  --	      g_USE_DEBUG_H_INIT_i : in natural := 0);
+	  --)           
     port(                                
     	                                   
     	  clk_i                  : in std_logic; --clk_i, --: in std_logic;.

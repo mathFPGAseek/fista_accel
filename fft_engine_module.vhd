@@ -32,7 +32,9 @@ use ieee.std_logic_textio.all;
 
 entity fft_engine_module is
 generic(
-	     g_USE_DEBUG_i  : in natural := 1);
+	     g_USE_DEBUG_i  : in natural := 1
+	     --g_USE_DEBUG_H_INIT_i  : in natural := 0); -- 0 = no debug , 1 = debug
+);
     port (
 
 	  clk_i               	         : in std_logic;
@@ -241,7 +243,11 @@ begin
     -----------------------------------------.
     -- FFT St mach contoller
     -----------------------------------------	 
-    U0 : entity work.fft_inbound_st_machine_controller            
+    U0 : entity work.fft_inbound_st_machine_controller
+    --GENERIC MAP (
+    --g_USE_DEBUG_H_INIT_i  =>  g_USE_DEBUG_H_INIT_i) -- 0 = no debug , 1 = debug
+	  --   
+    --)            
     PORT MAP(                                
     	                                   
     	  clk_i                  => clk_i,        -- : in std_logic; --clk_i,

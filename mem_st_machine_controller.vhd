@@ -79,6 +79,9 @@ USE ieee.numeric_std.ALL;
 ENTITY mem_st_machine_controller is
 --generic(
 --	    generic_i  : in natural);
+generic (
+	      g_USE_DEBUG_H_INIT_i : in natural := 0
+        );
     PORT (
 
 	  clk_i               	         : in std_logic;
@@ -1661,6 +1664,7 @@ ENTITY mem_st_machine_controller is
       end if;
    end process st_mach_controller_wr_registers; 
    
+   g_use_u1_no_debug : if g_USE_DEBUG_H_INIT_i = 0 generate -- default condition
 
     st_mach_controller_mem_and_control_registers : process( clk_i, rst_i )
       begin
@@ -1786,7 +1790,138 @@ ENTITY mem_st_machine_controller is
             	
        end if;
    end process st_mach_controller_mem_and_control_registers; 
-   
+  
+  end generate g_use_u1_no_debug;
+ 
+ g_use_u1_h_init_debug : if g_USE_DEBUG_H_INIT_i = 1 generate -- default condition
+
+    st_mach_controller_mem_and_control_registers : process( clk_i, rst_i )
+      begin
+       if( rst_i = '1') then
+
+              
+        -- app interface to ddr controller
+        app_cmd_r         <=          "000"; --: out std_logic_vector(2 downto 0);
+        app_en_r          <=          '0';   --: out std_logic;
+        app_wdf_end_r     <=          '0';   --: out std_logic;
+        app_wdf_en_r      <=          '0';   --: out std_logic;
+        --app_wdf_wren_r    <=          '0';   --: out std_logic_vector(2 downto 0);
+        
+        app_cmd_rr        <=          "000"; --: out std_logic_vector(2 downto 0);
+        app_en_rr         <=          '0';   --: out std_logic;
+        app_wdf_end_rr    <=          '0';   --: out std_logic;
+        --app_wdf_en_r    <=          '0';   --: out std_logic;
+        --app_wdf_wren_rr   <=          '0';   --: out std_logic_vector(2 downto 0);
+        
+        app_cmd_rrr       <=          "000"; --: out std_logic_vector(2 downto 0);
+        app_en_rrr        <=          '0';   --: out std_logic;
+        app_wdf_end_rrr   <=          '0';   --: out std_logic;
+        --app_wdf_en_r    <=          '0';   --: out std_logic;
+        --app_wdf_wren_rrr  <=          '0';   --: out std_logic_vector(2 downto 0);
+    	
+        -- mux/demux control to ddr memory controller.
+        ddr_intf_mux_wr_sel_r    <=    "00";  --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_r  <=    "000"; --: out std_logic_vector(2 downto 0);
+     
+        -- rd control to shared input memory
+        mem_shared_in_enb_r      <=   '0';    --: out std_logic;
+    
+        -- mux/demux control to front and Backend modules  
+        front_end_demux_fr_fista_r  <=  '0'; --: out std_logic;
+        front_end_mux_to_fft_r      <=  "00"; --: out std_logic_vector(1 downto 0);
+        back_end_demux_fr_fh_mem_r  <=  '0'; --: out std_logic;
+        back_end_demux_fr_fv_mem_r  <=  '0'; --: out std_logic;
+        back_end_mux_to_front_end_r <=  '0'; --: out std_logic;
+    
+        -- rd,wr control to F*(H) F(H) FIFO 
+        f_h_fifo_wr_en_r            <=  '0'; --: out std_logic;
+        f_h_fifo_rd_en_r            <=  '0'; --: out std_logic;
+    
+        -- rd,wr control to F(V) FIFO
+        f_v_fifo_wr_en_r            <=  '0'; --: out std_logic;
+        f_v_fifo_rd_en_r            <=  '0'; --: out std_logic;
+    
+        --  rd,wr control to Fdbk FIFO
+        fdbk_fifo_wr_en_r           <=  '0'; --: out std_logic;
+        fdbk_fifo_rd_en_r           <=  '0'; --: out std_logic;
+        
+        turnaround_r                <=  '0';
+        turnaround_rr               <=  '0';
+        			
+        -- decoder 
+        decoder_st_r                <= "00000001"; -- init state
+        
+        ps_controller               <= state_H;
+        			
+       elsif(clk_i'event and clk_i = '1') then
+       	
+            	
+        -- app interface to ddr controller.
+        app_cmd_r         <=          app_cmd_d;        --: out std_logic_vector(2 downto 0);
+        app_en_r          <=          app_en_d;         --: out std_logic;
+        app_wdf_end_r     <=          app_wdf_end_d;    --: out std_logic;
+        app_wdf_en_r      <=          app_wdf_en_d;     --: out std_logic;
+        --app_wdf_wren_r    <=          app_wdf_wren_d;   --: out std_logic_vector(2 downto 0);
+        
+        app_cmd_rr        <=          app_cmd_r;        --: out std_logic_vector(2 downto 0);
+        app_en_rr         <=          app_en_r;         --: out std_logic;
+        app_wdf_end_rr    <=          app_wdf_end_r;    --: out std_logic;
+        --app_wdf_en_r    <=          app_wdf_en_d;     --: out std_logic;
+        --app_wdf_wren_rr   <=          app_wdf_wren_r;   --: out std_logic_vector(2 downto 0);
+        
+        app_cmd_rrr       <=          app_cmd_rr;        --: out std_logic_vector(2 downto 0);
+        app_en_rrr        <=          app_en_rr;         --: out std_logic;
+        app_en_rrrr       <=          app_en_rrr;         --: out std_logic;
+        app_en_rrrrr      <=          app_en_rrrr;         --: out std_logic;
+        app_en_rrrrrr     <=          app_en_rrrrr;         --: out std_logic;
+
+        app_wdf_end_rrr    <=         app_wdf_end_rr;    --: out std_logic;
+        app_wdf_end_rrrr   <=         app_wdf_end_rrr;    --: out std_logic;
+        app_wdf_end_rrrrr  <=         app_wdf_end_rrrr;    --: out std_logic;
+        app_wdf_end_rrrrrr <=         app_wdf_end_rrrrr;    --: out std_logic;
+
+
+        --app_wdf_en_r    <=          app_wdf_en_d;     --: out std_logic;
+        --app_wdf_wren_rrr  <=          app_wdf_wren_rr;   --: out std_logic_vector(2 downto 0);
+    	
+        -- mux/demux control to ddr memory controller.
+        ddr_intf_mux_wr_sel_r    <=    ddr_intf_mux_wr_sel_d;  --: out std_logic_vector(1 downto 0);
+        ddr_intf_demux_rd_sel_r  <=    ddr_intf_demux_rd_sel_d; --: out std_logic_vector(2 downto 0);
+     
+        -- rd control to shared input memory
+        mem_shared_in_enb_r      <=   mem_shared_in_enb_d;    --: out std_logic;
+    
+        -- mux/demux control to front and Backend modules  
+        front_end_demux_fr_fista_r  <=  front_end_demux_fr_fista_d; --: out std_logic;
+        front_end_mux_to_fft_r      <=  front_end_mux_to_fft_d; --: out std_logic_vector(1 downto 0);
+        back_end_demux_fr_fh_mem_r  <=  back_end_demux_fr_fh_mem_d; --: out std_logic;
+        back_end_demux_fr_fv_mem_r  <=  back_end_demux_fr_fv_mem_d; --: out std_logic;
+        back_end_mux_to_front_end_r <=  back_end_mux_to_front_end_d; --: out std_logic;
+    
+        -- rd,wr control to F*(H) F(H) FIFO 
+        f_h_fifo_wr_en_r            <=  f_h_fifo_wr_en_d; --: out std_logic;
+        f_h_fifo_rd_en_r            <=  f_h_fifo_rd_en_d; --: out std_logic;
+    
+        -- rd,wr control to F(V) FIFO
+        f_v_fifo_wr_en_r            <=  f_v_fifo_wr_en_d; --: out std_logic;
+        f_v_fifo_rd_en_r            <=  f_v_fifo_rd_en_d; --: out std_logic;
+    
+        --  rd,wr control to Fdbk FIFO
+        fdbk_fifo_wr_en_r           <=  fdbk_fifo_wr_en_d; --: out std_logic;
+        
+        turnaround_r                <= turnaround_d;
+        turnaround_rr               <= turnaround_r;
+        			
+        -- decoder
+        decoder_st_r                <= decoder_st_d;
+        
+        ps_controller               <= ns_controller;       			           	
+            	
+       end if;
+   end process st_mach_controller_mem_and_control_registers; 
+  
+  end generate g_use_u1_h_init_debug;
+ 
   -----------------------------------------
   -- Address Decoder KLUDGE logic
   -----------------------------------------.

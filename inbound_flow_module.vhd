@@ -30,6 +30,12 @@ USE ieee.numeric_std.ALL;
 entity inbound_flow_module is
 --generic(
 --	    generic_i  : in natural);
+
+    generic(
+	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
+	      g_USE_DEBUG_H_INIT_i : in natural :=  0
+	  ); -- 0 = no debug , 1 = debug
+
     port (
 
 	  clk_i               	         : in std_logic;
@@ -71,6 +77,11 @@ begin
     -----------------------------------------	
     
     U0 : entity work.init_st_machine_controller
+    GENERIC MAP(
+	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
+	      g_USE_DEBUG_H_INIT_i  =>  g_USE_DEBUG_H_INIT_i -- 0 = no debug , 1 = debug
+    )
+    
     PORT MAP(
     	
     	clk_i                                       => clk_i, --: in std_logic;

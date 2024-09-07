@@ -170,6 +170,9 @@ begin
     -----------------------------------------	
     
     u0 : entity work.mem_controller
+    GENERIC MAP (
+    	           g_USE_DEBUG_H_INIT_i => ZERO
+    )
     PORT MAP(
     	
     	  clk_i                                       => clk_i, --: in std_logic;
@@ -250,6 +253,11 @@ begin
     u1 :  entity  work.inbound_flow_module 
 --generic(
 --	    generic_i  : in natural);
+    GENERIC MAP(
+	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
+	      g_USE_DEBUG_H_INIT_i  =>  ZERO
+	  )-- 0 = no debug , 1 = debug
+
     PORT MAP (
 
         clk_i               	            =>   clk_i , --: in std_logic;
@@ -311,7 +319,11 @@ begin
     -----------------------------------------	
 
     
-    u5 : entity work.master_st_machine_controller         
+    u5 : entity work.master_st_machine_controller  
+    GENERIC MAP(
+    	          g_USE_DEBUG_H_INIT_i  =>  ZERO -- 0 = no debug , 1 = debug
+	
+    )       
     PORT MAP(                                
     	                                   
     	  clk_i                  => clk_i,--: in std_logic; --clk_i, --: in std_logic;
@@ -329,7 +341,9 @@ begin
     u3 : entity work.fft_engine_module 
     GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      g_USE_DEBUG_i  =>  ZERO) -- 0 = no debug , 1 = debug
+	      g_USE_DEBUG_i  =>  ZERO
+	  ) -- 0 = no debug , 1 = debug
+	  --    g_USE_DEBUG_H_INIT_i  =>  ZERO) -- 0 = no debug , 1 = debug
 
     PORT MAP (                      
                                     
@@ -406,7 +420,8 @@ begin
     u4 : entity work.mem_in_buffer_module
     GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      debug_state_i  =>  ZERO) -- 0 = no debug , 1 = debug 
+	      debug_state_i  =>  ZERO
+	  ) -- 0 = no debug , 1 = debug 
     PORT MAP( 
     clk_i                     =>     clk_i,             --: in STD_LOGIC;
     rst_i               	    =>     rst_i,--: in std_logic;
@@ -429,7 +444,8 @@ begin
   u6 : entity work.mem_transpose_module
   GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      debug_state_i  =>  ZERO) -- 0 = no debug , 1 = debug
+	      debug_state_i  =>  ZERO
+	) -- 0 = no debug , 1 = debug
  
   PORT MAP ( 
   clk_i => clk_i,

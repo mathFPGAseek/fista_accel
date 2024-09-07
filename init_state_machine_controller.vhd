@@ -22,13 +22,19 @@
 -- Initial Date: 10/6/23
 -- Descr: Init state machine to read out init block
 --
-------------------------------------------------.
+------------------------------------------------
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 
     
-entity init_st_machine_controller is           
+entity init_st_machine_controller is
+
+    generic(
+	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
+	      g_USE_DEBUG_H_INIT_i : in natural := 0
+	         ); -- 0 = no debug , 1 = debug
+           
     port(                                
     	                                   
     	  clk_i                  : in std_logic; --clk_i, --: in std_logic;
@@ -213,6 +219,7 @@ BEGIN
   -----------------------------------------
   -- Main State Machine (Reg) Mem & Control Signals
   -----------------------------------------
+  g_use_u1_no_debug : if g_USE_DEBUG_H_INIT_i = 0 generate -- default condition
 
     st_mach_controller_registers : process( clk_i, rst_i )
       begin
@@ -238,6 +245,36 @@ BEGIN
        end if;
    end process st_mach_controller_registers;       	
   
+  end generate g_use_u1_no_debug;
+  
+ g_use_u1_h_init_debug : if g_USE_DEBUG_H_INIT_i = 1 generate -- default condition
+
+    st_mach_controller_registers : process( clk_i, rst_i )
+      begin
+       if( rst_i = '1') then
+       	
+       	
+        -- decoder 
+        decoder_st_r                <= "001"; -- init state
+        en_r                        <= '0';
+        en_rr                       <= '0'; 
+        
+        ps_controller               <= state_wait;
+        			
+       elsif(clk_i'event and clk_i = '1') then
+         
+        -- decoder
+        decoder_st_r                <= decoder_st_d;
+        en_r                        <= en_d;
+        en_rr                       <= en_r;
+        
+        ps_controller               <= ns_controller;       			           	
+            	
+       end if;
+   end process st_mach_controller_registers;       	
+  
+  end generate g_use_u1_h_init_debug;
+
   -----------------------------------------
   -- Address Decoder
   -----------------------------------------          	
