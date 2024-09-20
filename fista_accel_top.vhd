@@ -159,7 +159,9 @@ architecture struct of fista_accel_top is
   	
   constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
   constant ONE                             : natural := 1; -- for selecting  ONE = use debug
-  constant  ZERO                           : natural := 0;
+  constant ZERO                            : natural := 0;
+  
+  constant g_USE_DEBUG_H_INIT_i            : natural := 1; -- set to 1 for H_init sim debug; otherwise 0
   
   signal dbg_qualify_state_verify_rd       : std_logic_vector(2 downto 0);
 begin
@@ -171,7 +173,7 @@ begin
     
     u0 : entity work.mem_controller
     GENERIC MAP (
-    	           g_USE_DEBUG_H_INIT_i => ZERO
+    	           g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
     )
     PORT MAP(
     	
@@ -255,7 +257,7 @@ begin
 --	    generic_i  : in natural);
     GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      g_USE_DEBUG_H_INIT_i  =>  ZERO
+	      g_USE_DEBUG_H_INIT_i  =>  g_USE_DEBUG_H_INIT_i
 	  )-- 0 = no debug , 1 = debug
 
     PORT MAP (
@@ -321,7 +323,7 @@ begin
     
     u5 : entity work.master_st_machine_controller  
     GENERIC MAP(
-    	          g_USE_DEBUG_H_INIT_i  =>  ZERO -- 0 = no debug , 1 = debug
+    	          g_USE_DEBUG_H_INIT_i  =>  g_USE_DEBUG_H_INIT_i -- 0 = no debug , 1 = debug
 	
     )       
     PORT MAP(                                
@@ -444,7 +446,8 @@ begin
   u6 : entity work.mem_transpose_module
   GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      debug_state_i  =>  ZERO
+	      debug_state_i  =>  ZERO,
+	      g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
 	) -- 0 = no debug , 1 = debug
  
   PORT MAP ( 

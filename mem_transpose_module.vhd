@@ -16,7 +16,9 @@ entity mem_transpose_module is
                   -- := 110 -> DEBUG InvAH  -> {Load (H* x FH(v))}      : trans memory
                   -- := 111 -> DEBUG update -> {Load Grad, Vk}          : trans & vk memory
   generic(
-  	       debug_state_i : in natural := 0);
+  	       debug_state_i : in natural := 0;
+  	       g_USE_DEBUG_H_INIT_i : in natural := 0
+  	     );
   
   Port (
     clk_i : in STD_LOGIC; 
@@ -196,9 +198,10 @@ begin
 	
   -----------------------------------------
   -- Transpose mem_intf
-  -----------------------------------------	
-  g_use_u1_no_debug : if debug_state_i = 0 generate -- default condition
-  		
+  -----------------------------------------.	
+  --g_use_u1_no_debug : if debug_state_i = 0 generate -- default condition
+ g_use_u1_no_debug : if g_USE_DEBUG_H_INIT_i = 0 generate -- default condition
+ 		
   	u1 : entity work.blk_mem_image_gen_0 
   	PORT MAP ( 
   	clka  => clk_i,                                      --clka : in STD_LOGIC;
@@ -213,7 +216,8 @@ begin
     
  end generate g_use_u1_no_debug;
  
- g_use_u2_fwd_2d_A_debug : if debug_state_i = 1 generate -- debug H
+ --g_use_u2_fwd_2d_A_debug : if debug_state_i = 1 generate -- debug H
+ g_use_u2_fwd_2d_A_debug : if g_USE_DEBUG_H_INIT_i = 1 generate -- debug H
   		
   	u2 : entity work.blk_mem_fwd_2d_A_image_gen_0 
   	PORT MAP ( 
@@ -417,7 +421,14 @@ begin
    -----------------------------------------------------------------------
   -- Store read outputs from memory; We are reading an array built by  process record_outputs
   -----------------------------------------------------------------------.
-  --RamProcRawData : process(clk_i,rst_i,falling_valid_event_d)
+  --Note:
+  -- mem(col,row), If the fast addr seq is ROW here in VHDL, and our Matlab is saved to file as  row striped( sample  0,1,2,3...255 is first row )
+  -- also means we stack the row vectors on top of each other for the file, then
+  -- then we build our vhdl mem array as [ 0     1    2 ... 255;
+  --                                       256 257 258  ... 511]  this in COE; The Matlab is consistent with this VHDL process below 
+  --
+  -- Another way of thinking of the process below is that we are writing to the matrix h_read_mem( e.g.) down a row because
+  -- our addressing from VHDL is down the column with addr: 0 256 512 .....
   RamProcRawData : process(clk_i,rst_i)
 
     begin
@@ -442,7 +453,9 @@ begin
   	  if ( rst_i = '1' ) then
          dummy_h_read <= '1';
      elsif( (enable_read_rr = '1') and (master_mode_i = "00011") )then 			
-   		  h_read_mem(state_counter_1_rrr,state_counter_2_r) <= data_out_r(73 downto 40) & data_out_r(33 downto 0);  				  			  
+   		  --h_read_mem(state_counter_1_rrr,state_counter_2_r) <= data_out_r(73 downto 40) & data_out_r(33 downto 0);
+   		    h_read_mem(state_counter_2_r,state_counter_1_rrr) <= data_out_r(73 downto 40) & data_out_r(33 downto 0);  				  			  
+  				  			  
   		end if;
    end process RamProcRawHReadData;  
     
@@ -468,7 +481,7 @@ data_h_read : process(clear_state_counter_2_rr)
 
   begin
    if ( (clear_state_counter_2_rr  = '1') and (master_mode_i = "00011") ) then
-        write_h_init_done   <= writeToFileMemRawContentsHRead(fft_raw_mem);	
+        write_h_init_done   <= writeToFileMemRawContentsHRead(h_read_mem);	
        report " Done Reads for one frame of H Init";
    end if;
 end process data_h_read;
