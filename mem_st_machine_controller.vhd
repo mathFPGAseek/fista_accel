@@ -317,7 +317,9 @@ generic (
   signal rising_turnaround_event_rrrr : std_logic;
   
   -- signal to select rd_incr_addr
-  signal rd_addr_incr_from_mem_cont_d : std_logic_vector(15 downto 0) ;
+  signal rd_addr_incr_from_mem_cont_d : std_logic_vector(15 downto 0);
+  signal rd_addr_incr_from_mem_cont_r : std_logic_vector(15 downto 0);
+
   	
   -- counters
   signal state_counter_1_r           : integer;  -- B writes
@@ -453,7 +455,8 @@ generic (
   constant COUNT_254       : integer := 254;
   
   constant FFT_IMAGE_SIZE  : integer := 253; -- 256 -3 for timing purposes.
-  --constant FFT_IMAGE_SIZE  : integer := 254;
+  --constant FFT_IMAGE_SIZE  : integer := 254; -- 256 -2 for fix to col_rd
+                                            
   constant COUNT_4         : integer := 4;
   constant COUNT_8         : integer := 8;
   constant COUNT_16        : integer := 16;
@@ -3221,6 +3224,20 @@ generic (
   -- enable for counter 8 which keeps in stalled state wr to mem
   enable_state_counter_8_d <= app_rdy_i and app_wdf_rdy_i;
   
+  
+  -- Fix for Col rd
+  rd_addr_incr_from_mem_cont_reg : process(clk_i,rst_i)
+  	begin
+  		if(rst_i = '1') then
+  			rd_addr_incr_from_mem_cont_r <= (others=> '0');
+  			
+  		elsif(clk_i'event and clk_i = '1') then
+  			rd_addr_incr_from_mem_cont_r <= rd_addr_incr_from_mem_cont_d;
+  			
+      end if;
+  end process rd_addr_incr_from_mem_cont_reg;
+  
+  
   -- logic registers for rety
   -- :) --
   --addr_counter_logic_retry_reg : process(clk_i,rst_i)
@@ -3365,7 +3382,9 @@ generic (
                                                   -- we attmept to make things 
                                                   -- quiescent.
   
-  rd_addr_incr_from_mem_cont_o  <= rd_addr_incr_from_mem_cont_d;
+  --rd_addr_incr_from_mem_cont_o  <= rd_addr_incr_from_mem_cont_d;
+  rd_addr_incr_from_mem_cont_o  <= rd_addr_incr_from_mem_cont_r;
+
     
   enable_for_rom_o  <= app_en_r;
   
