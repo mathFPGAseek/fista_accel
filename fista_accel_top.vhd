@@ -151,6 +151,22 @@ architecture struct of fista_accel_top is
                   -- := 101 -> DEBUG H*     -> {Load H* , Load FH(v))}  : trans & f_adj memory
                   -- := 110 -> DEBUG InvAH  -> {Load (H* x FH(v))}      : trans memory
                   -- := 111 -> DEBUG update -> {Load Grad, Vk}          : trans & vk memory
+ --
+ -------------------------------------------------------------------------------------------------------------
+ -- -- := 001 -> DEBUG H      -> {load H, Load F(v)}      : trans  & f_h memory
+ -- debug scenario: Rd F(H) / No writes                               Settings
+ -------------------------------------------------------------------------------------------------------------
+ -- only verify Read col reads out of transpose memory after 2d FFT
+ -- Also, we do not want to enable writes
+ --                                                                   All modules :
+ --                                                      							g_USE_DEBUG_H_INIT_i = 1
+ --                 
+ --                                                                   u6 : entity work.mem_transpose_module
+ -- 	                                                                debug_state_i  =>  ZERO_INTEGER,
+ --
+ -------------------------------------------------------------------------------------------------------------
+                                                                                                                              
+ 
   signal   event_to_mem                    : std_logic;                
   constant DEBUG_STATE                     : std_logic_vector(2 downto 0) := "001"; -- DEBUG H
   	
@@ -160,6 +176,9 @@ architecture struct of fista_accel_top is
   constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
   constant ONE                             : natural := 1; -- for selecting  ONE = use debug
   constant ZERO                            : natural := 0;
+  
+  constant ONE_INTEGER                     : integer := 1;
+  constant ZERO_INTEGER                    : integer := 0;
   
   constant g_USE_DEBUG_H_INIT_i            : natural := 1; -- set to 1 for H_init sim debug; otherwise 0
   
@@ -446,7 +465,7 @@ begin
   u6 : entity work.mem_transpose_module
   GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      debug_state_i  =>  ZERO,
+	      debug_state_i  =>  ZERO_INTEGER,
 	      g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
 	) -- 0 = no debug , 1 = debug
  

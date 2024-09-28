@@ -1,5 +1,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
+USE ieee.numeric_std.ALL;
 use std.textio.all;
 use ieee.std_logic_textio.all;
 
@@ -16,8 +17,8 @@ entity mem_transpose_module is
                   -- := 110 -> DEBUG InvAH  -> {Load (H* x FH(v))}      : trans memory
                   -- := 111 -> DEBUG update -> {Load Grad, Vk}          : trans & vk memory
   generic(
-  	       debug_state_i : in natural := 0;
-  	       g_USE_DEBUG_H_INIT_i : in natural := 0
+  	       debug_state_i : in integer := 0;         -- = 0 no write = 1 write
+  	       g_USE_DEBUG_H_INIT_i : in natural := 0   -- To use COE file
   	     );
   
   Port (
@@ -107,6 +108,14 @@ signal qualify_state_rr             : std_logic;
 signal qualify_state_rrr            : std_logic;
 signal qualify_state_rrrr           : std_logic;
 signal qualify_state_int            : std_logic;
+
+-- signals for kludge
+signal ena_to_mem_r                 : std_logic;
+signal ena_to_mem_rr                : std_logic;
+signal ena_to_mem_d                 : std_logic;
+
+-- debug signal for controlling write to debug memory instantiation
+signal write_control_from_generic   : std_logic_vector( 0 downto 0);
                   
 	
 	-------------------------------------------------
@@ -205,7 +214,8 @@ begin
   	u1 : entity work.blk_mem_image_gen_0 
   	PORT MAP ( 
   	clka  => clk_i,                                      --clka : in STD_LOGIC;
-  	ena   => ena,                                        --ena : in STD_LOGIC;
+  	--ena   => ena,                                      --ena : in STD_LOGIC;
+  	ena   => ena_to_mem_d,                               --ena : in STD_LOGIC;
   	wea   => wea,                                        --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
   	addra => addra,                                      --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
   	dina  => dina,                                       --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
@@ -216,14 +226,17 @@ begin
     
  end generate g_use_u1_no_debug;
  
+ write_control_from_generic <= std_logic_vector(to_unsigned(debug_state_i,write_control_from_generic'length));
+ 	
  --g_use_u2_fwd_2d_A_debug : if debug_state_i = 1 generate -- debug H
  g_use_u2_fwd_2d_A_debug : if g_USE_DEBUG_H_INIT_i = 1 generate -- debug H
   		
   	u2 : entity work.blk_mem_fwd_2d_A_image_gen_0 
   	PORT MAP ( 
   	clka  => clk_i,                                      --clka : in STD_LOGIC;
-  	ena   => ena,                                        --ena : in STD_LOGIC;
-  	wea   => wea,                                        --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
+  	--ena   => ena,                                        --ena : in STD_LOGIC;
+  	ena   => ena_to_mem_d,                               --ena : in STD_LOGIC;
+  	wea   => write_control_from_generic,                 --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
   	addra => addra,                                      --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
   	dina  => dina,                                       --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
   	douta => data_out_no_debug_fwd_2d_A_r                --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
@@ -232,6 +245,27 @@ begin
     data_out_r <= data_out_no_debug_fwd_2d_A_r;
     
  end generate g_use_u2_fwd_2d_A_debug;
+ 
+ -- kludge fix to read from transpose the last sample
+ 
+ delay_ena_to_mem : process(clk_i, rst_i)
+ 	
+ 	 begin 
+ 	 	
+ 	 	 if (rst_i = '1') then
+ 	 	
+ 	 	 	 ena_to_mem_r  <= '0';
+ 	 	 	 ena_to_mem_rr <= '0';
+ 	 	 	
+ 	 	 elsif( clk_i'event and clk_i = '1') then
+ 	 	 	 ena_to_mem_r  <= ena;
+ 	 	 	 ena_to_mem_rr <= ena_to_mem_r;
+ 	 	 	 
+ 	 	 end if;
+ 	 	 	
+ end process delay_ena_to_mem;
+ 
+ ena_to_mem_d <= ena or ena_to_mem_r or ena_to_mem_rr;
 
 -----------------------------------------------------------------
 -----------------------------------------------------------------    
