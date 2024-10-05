@@ -907,8 +907,8 @@ U0 : entity work.fifo_generator_0
   );
 
 
-
-
+--fr_fifo_high_data_out_pd   <= mux_to_fifo_high_data_in_r; -- pass thru, no FIFO
+--fr_fifo_high_valid_out_pd  <= mux_to_fifo_high_valid_in_r;
 
 U1 : entity work.fifo_generator_0 
   PORT MAP (    
@@ -927,7 +927,8 @@ U1 : entity work.fifo_generator_0
     rd_rst_busy  =>   open -- out STD_LOGIC
   );
 
-
+--fr_fifo_low_data_out_pd  <= demux_to_fifo_low_data_in_r;
+--fr_fifo_low_valid_out_pd <= demux_to_fifo_low_valid_in_r;
 
 
 -----------------------------------------

@@ -317,8 +317,13 @@ generic (
   signal rising_turnaround_event_rrrr : std_logic;
   
   -- signal to select rd_incr_addr
-  signal rd_addr_incr_from_mem_cont_d : std_logic_vector(15 downto 0);
-  signal rd_addr_incr_from_mem_cont_r : std_logic_vector(15 downto 0);
+  signal rd_addr_incr_from_mem_cont_d     : std_logic_vector(15 downto 0);
+  signal rd_addr_incr_from_mem_cont_r     : std_logic_vector(15 downto 0);
+  signal rd_addr_incr_from_mem_cont_rr    : std_logic_vector(15 downto 0);
+  signal rd_addr_incr_from_mem_cont_rrr   : std_logic_vector(15 downto 0);
+  signal rd_addr_incr_from_mem_cont_rrrr  : std_logic_vector(15 downto 0); 
+  signal rd_addr_incr_from_mem_cont_rrrrr : std_logic_vector(15 downto 0); 
+
 
   	
   -- counters
@@ -1979,7 +1984,11 @@ generic (
   	  	--pipe2_addr_d(15 downto 0)  <=	   std_logic_vector(to_unsigned(state_counter_6_r,pipe2_addr_d'length)); -- image count
   	  	--app_addr_d(19 downto 0)    <=    bank_addr_r & pipe1_addr_r(7 downto 0) & pipe2_addr_r(15 downto 8);   -- bank +
   	 
-  	 
+  	 when  "01000001" => -- H COl 	
+  	 		
+  	  	bank_addr_d(3 downto 0)    <=    "0000";     --upper Ping memory
+  	  	pipe1_addr_d(15 downto 0)  <=	  rd_col_addr_int_i; -- fft count
+  	  	  	 
   	  when "00010011" => -- write  row Stall
   	 	 	 	  		
   		  bank_addr_d(3 downto 0)    <=	   "0000";   --upper Ping memory
@@ -3226,16 +3235,16 @@ generic (
   
   
   -- Fix for Col rd
-  rd_addr_incr_from_mem_cont_reg : process(clk_i,rst_i)
-  	begin
-  		if(rst_i = '1') then
-  			rd_addr_incr_from_mem_cont_r <= (others=> '0');
-  			
-  		elsif(clk_i'event and clk_i = '1') then
-  			rd_addr_incr_from_mem_cont_r <= rd_addr_incr_from_mem_cont_d;
-  			
-      end if;
-  end process rd_addr_incr_from_mem_cont_reg;
+  --rd_addr_incr_from_mem_cont_reg : process(clk_i,rst_i)
+  --	begin
+  --		if(rst_i = '1') then
+  --			rd_addr_incr_from_mem_cont_r <= (others=> '0');
+  --			
+  --		elsif(clk_i'event and clk_i = '1') then
+  --			rd_addr_incr_from_mem_cont_r <= rd_addr_incr_from_mem_cont_d;
+  --			
+  --    end if;
+  --end process rd_addr_incr_from_mem_cont_reg;
   
   
   -- logic registers for rety
@@ -3281,48 +3290,68 @@ generic (
   end process state_counter_10_delay;
  
  -- select rd incr rd addr for rd and write columns 
- select_mux_for_incr_addr : process(decoder_st_r)
+ select_mux_for_incr_addr : process(decoder_st_r,state_counter_10_r,rd_addr_incr_from_mem_cont_rrrrr)
  	
  	 begin
  	 	
  	 	 case decoder_st_r is
  	 	 	
- 	 	 		when "00100010" => --state_rd_2d_col
+ 	 	 		--when "00100010" => --state_rd_2d_col
  	 	 	
- 	 	 	  	rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_d'length));
+ 	 	 	  --	rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_d'length));
  	 	  
  	 	 	  
- 	 	 		when "00100110" => -- state_rd_incr_addr
+ 	 	 		--when "00100110" => -- state_rd_incr_addr
  	 	 	
- 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_d'length));
+ 	 	 	  --  rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_d'length));
+ 	 
+ 	 	 	 
+ 	 	 		--when "00010001" => -- state_wait_for_fft
+ 	 	 	
+ 	 	 	  --  rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_rr,rd_addr_incr_from_mem_cont_d'length));
 
  	 	 	 
- 	 	 	 
- 	 	 		when "00010001" => -- state_wait_for_fft
+ 	 	 		--when "00100111" => -- state_wr_col
  	 	 	
- 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_rr,rd_addr_incr_from_mem_cont_d'length));
-
- 	 	 	 
- 	 	 		when "00100111" => -- state_wr_col
- 	 	 	
- 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_rr,rd_addr_incr_from_mem_cont_d'length));
+ 	 	 	  --  rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_rr,rd_addr_incr_from_mem_cont_d'length));
 
  	 	 	 
  	 	 		when "00101000" => -- state_wait_wr_to_rd
  	 	 	
- 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_rr,rd_addr_incr_from_mem_cont_d'length));
+ 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_d'length));
 
  	 	 	
  	 	 		when others =>
  	 	 	
- 	 	 	    rd_addr_incr_from_mem_cont_d <= std_logic_vector(to_unsigned(state_counter_10_r,rd_addr_incr_from_mem_cont_d'length));
+ 	 	 	    rd_addr_incr_from_mem_cont_d <= rd_addr_incr_from_mem_cont_rrrrr;
 
  	 	 	  	
  	 	 end case;
  	 	 	
  end process select_mux_for_incr_addr; 
- 	 	 	  
- 	 	  
+ 	
+ 	-- delay rd_addr to middle of state_wait_wr_to_rd so that you do not interfere with read addr , but
+ 	-- are stable for write addr incr. 	 	  
+ 	rd_addr_incr_from_mem_cont_delay : process(clk_i,rst_i)
+  	begin
+  		if(rst_i = '1')	then
+  			rd_addr_incr_from_mem_cont_r     <= (others => '0');
+  			rd_addr_incr_from_mem_cont_rr    <= (others => '0');
+  			rd_addr_incr_from_mem_cont_rrr   <= (others => '0');
+  			rd_addr_incr_from_mem_cont_rrrr  <= (others => '0');
+  			rd_addr_incr_from_mem_cont_rrrrr <= (others => '0');
+  				
+  	  elsif(clk_i'event and clk_i = '1') then
+    	
+  	  	rd_addr_incr_from_mem_cont_r     <= rd_addr_incr_from_mem_cont_d;
+  	  	rd_addr_incr_from_mem_cont_rr    <= rd_addr_incr_from_mem_cont_r;
+  	  	rd_addr_incr_from_mem_cont_rrr   <= rd_addr_incr_from_mem_cont_rr;
+  	  	rd_addr_incr_from_mem_cont_rrrr  <= rd_addr_incr_from_mem_cont_rrr;
+  	  	rd_addr_incr_from_mem_cont_rrrrr <= rd_addr_incr_from_mem_cont_rrrr;
+
+  	  end if;
+  end process rd_addr_incr_from_mem_cont_delay;
+   	  
  	 	 	
   ----------------------------------------
   -- Assignments
@@ -3383,8 +3412,8 @@ generic (
                                                   -- quiescent.
   
   --rd_addr_incr_from_mem_cont_o  <= rd_addr_incr_from_mem_cont_d;
-  rd_addr_incr_from_mem_cont_o  <= rd_addr_incr_from_mem_cont_r;
-
+  --rd_addr_incr_from_mem_cont_o  <= rd_addr_incr_from_mem_cont_r;
+  rd_addr_incr_from_mem_cont_o <= rd_addr_incr_from_mem_cont_rrrrr;
     
   enable_for_rom_o  <= app_en_r;
   
