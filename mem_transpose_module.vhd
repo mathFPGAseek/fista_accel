@@ -17,6 +17,7 @@ entity mem_transpose_module is
                   -- := 110 -> DEBUG InvAH  -> {Load (H* x FH(v))}      : trans memory
                   -- := 111 -> DEBUG update -> {Load Grad, Vk}          : trans & vk memory
   generic(
+  	       debug_capture_file_i : integer := 0;
   	       debug_state_i : in integer := 0;         -- = 0 no write = 1 write
   	       g_USE_DEBUG_H_INIT_i : in natural := 0   -- To use COE file
   	     );
@@ -116,6 +117,8 @@ signal ena_to_mem_d                 : std_logic;
 
 -- debug signal for controlling write to debug memory instantiation
 signal write_control_from_generic   : std_logic_vector( 0 downto 0);
+	
+signal enable_file_capture          : std_logic_vector( 0 downto 0);
                   
 	
 	-------------------------------------------------
@@ -496,12 +499,15 @@ begin
   -------------------------------------------------
 	-- Write to a file the mem contents to check
 	-------------------------------------------------  
+	
+enable_file_capture <= std_logic_vector(to_unsigned(debug_capture_file_i,enable_file_capture'length));
+	
 data_read : process(clear_state_counter_2_rr)
 
   --report " This is a read of one frame
 
   begin
-   if (clear_state_counter_2_rr  = '1') then -- Have completed MAX_SAMPLE FFT Computations( 1-D)o
+   if( (clear_state_counter_2_rr  = '1') and (enable_file_capture(0) = '1') ) then -- Have completed MAX_SAMPLE FFT Computations( 1-D)o
         --write_fft_1d_raw_done <= writeToFileMemRawContents(fft_raw_mem,fft_bin_seq_addr);	
           write_fft_1d_raw_done <= writeToFileMemRawContents(fft_raw_mem);	
        report " Done Reads for one frame";
@@ -514,7 +520,7 @@ data_h_read : process(clear_state_counter_2_rr)
   --report " This is a read of one frame
 
   begin
-   if ( (clear_state_counter_2_rr  = '1') and (master_mode_i = "00011") ) then
+   if ( (clear_state_counter_2_rr  = '1') and (master_mode_i = "00011") and (enable_file_capture(0) = '1')  ) then
         write_h_init_done   <= writeToFileMemRawContentsHRead(h_read_mem);	
        report " Done Reads for one frame of H Init";
    end if;

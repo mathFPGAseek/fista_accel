@@ -99,48 +99,59 @@ end fista_accel_top;
 architecture struct of fista_accel_top is  
   -- signals 
   
-  signal dbg_mem_init_start_int            : std_logic; 
-  signal init_data                         : std_logic_vector(79 downto 0);
-  signal init_valid_data                   : std_logic;
+  signal dbg_mem_init_start_int                : std_logic; 
+  signal init_data                             : std_logic_vector(79 downto 0);
+  signal init_valid_data                       : std_logic;
+                                              
+  signal to_fft_data_int                       : std_logic_vector(79 downto 0);
+  signal fista_accel_data_int                  : std_logic_vector(79 downto 0);
+  	                                          
+  signal to_fft_valid_int                      : std_logic;
+  signal fista_accel_valid_int                 : std_logic;
+                                              
+  signal stall_warning_int                     : std_logic;--: out std_logic;
+                                              
+  signal dual_port_wr_int                      : std_logic_vector(0 downto 0);--: out std_logic;  
+  signal dual_port_addr_int                    : std_logic_vector(16 downto 0);--: out std_logic_vector(16 downto 0);
+  signal dual_port_data_int                    : std_logic_vector(79 downto 0);--: out std_logic_vector(79 downto 0)
+                                              
+  signal fft_rdy_int                           : std_logic;
+                                              
+  signal dbg_mem_shared_in_enb_int             : std_logic;
+  signal dbg_mem_shared_in_addb_int            : std_logic_vector(7 downto 0);
+  signal data_to_mem_intf_fr_mem_in_buffer     : std_logic_vector(79 downto 0);
+  	                                          
+  signal turnaround_int                        : std_logic;
+                                              
+  signal master_mode_int                       : std_logic_vector(4 downto 0);
+  signal master_mode_upper_bits_int            : std_logic_vector(4 downto 1); 
+                                              
+  signal dummy_input_1                         : std_logic := '1';
+  signal dummy_input_2                         : std_logic := '1';
+  signal dummy_input_3                         : std_logic_vector(0 downto 0) := (others=> '0');
+  		                                        
+  signal sram_wr_en_vec_int                    : std_logic_vector(0 downto 0);
+  signal sram_wr_en_int                        : std_logic;
+  signal sram_en_int                           : std_logic;
+  signal sram_addr_int                         : std_logic_vector(15 downto 0);
+  signal data_fr_mem_intf_to_sys               : std_logic_vector(79 downto 0);
+  signal valid_fr_mem_intf_to_sys              : std_logic;
+  signal data_fr_mem_intf_to_gen_proc          : std_logic_vector(79 downto 0);
+  signal valid_fr_mem_intf_to_gen_proc         : std_logic;
+  signal data_fr_big_h_mem_to_gen_proc         : std_logic_vector(79 downto 0);
+  signal valid_fr_big_h_mem_to_gen_proc        : std_logic;
   
-  signal to_fft_data_int                   : std_logic_vector(79 downto 0);
-  signal fista_accel_data_int              : std_logic_vector(79 downto 0);
+  
+  signal ena_to_buffer                         : std_logic;
+  signal wea_to_buffer                         : std_logic_vector(0  downto 0);         
+  signal addr_to_buffer                        : std_logic_vector(7  downto 0);
+  signal data_to_buffer                        : std_logic_vector(79 downto 0);
+  
+  signal to_buffer_trans_mem_port_wr_int       : std_logic_vector(0  downto 0);
+  signal to_buffer_trans_mem_port_addr_int     : std_logic_vector(16  downto 0);
+  signal to_buffer_trans_mem_port_data_int     : std_logic_vector(79 downto 0);
   	
-  signal to_fft_valid_int                  : std_logic;
-  signal fista_accel_valid_int             : std_logic;
-  
-  signal stall_warning_int                 : std_logic;--: out std_logic;
-  
-  signal dual_port_wr_int                  : std_logic_vector(0 downto 0);--: out std_logic;  
-  signal dual_port_addr_int                : std_logic_vector(16 downto 0);--: out std_logic_vector(16 downto 0);
-  signal dual_port_data_int                : std_logic_vector(79 downto 0);--: out std_logic_vector(79 downto 0)
-  
-  signal fft_rdy_int                       : std_logic;
-  
-  signal dbg_mem_shared_in_enb_int         : std_logic;
-  signal dbg_mem_shared_in_addb_int        : std_logic_vector(7 downto 0);
-  signal data_to_mem_intf_fr_mem_in_buffer : std_logic_vector(79 downto 0);
-  	
-  signal turnaround_int                    : std_logic;
-  
-  signal master_mode_int                   : std_logic_vector(4 downto 0);
-  signal master_mode_upper_bits_int        : std_logic_vector(4 downto 1); 
-  
-  signal dummy_input_1                     : std_logic := '1';
-  signal dummy_input_2                     : std_logic := '1';
-  signal dummy_input_3                     : std_logic_vector(0 downto 0) := (others=> '0');
-  		
-  signal sram_wr_en_vec_int                : std_logic_vector(0 downto 0);
-  signal sram_wr_en_int                    : std_logic;
-  signal sram_en_int                       : std_logic;
-  signal sram_addr_int                     : std_logic_vector(15 downto 0);
-  signal data_fr_mem_intf_to_sys           : std_logic_vector(79 downto 0);
-  signal valid_fr_mem_intf_to_sys          : std_logic;
-  signal data_fr_mem_intf_to_gen_proc      : std_logic_vector(79 downto 0);
-  signal valid_fr_mem_intf_to_gen_proc     : std_logic;
-  signal data_fr_big_h_mem_to_gen_proc     : std_logic_vector(79 downto 0);
-  signal valid_fr_big_h_mem_to_gen_proc    : std_logic;
-  
+  signal done_signal_from_h_h_mult_int         : std_logic;
   	
   -- debug signals : All signals go to mem,gen_proc, and master
                   -- DEBUG_STATE 
@@ -179,6 +190,8 @@ architecture struct of fista_accel_top is
   
   constant ONE_INTEGER                     : integer := 1;
   constant ZERO_INTEGER                    : integer := 0;
+  
+  constant ZERO_VECTOR                     : std_logic_vector(0 downto 0) := (others => '0');
   
   constant g_USE_DEBUG_H_INIT_i            : natural := 1; -- set to 1 for H_init sim debug; otherwise 0
   
@@ -417,9 +430,9 @@ begin
     from_vk_mem_data_i              =>       (others => '0'), --: in std_logic_vector(79 downto 0);      
   	                               
     -- outputs                      
-    to_buffer_trans_mem_port_wr_o   =>       open , --: out std_logic;  
-    to_buffer_trans_mem_port_addr_o =>       open, --: out std_logic_vector(16 downto 0);
-    to_buffer_trans_mem_port_data_o =>       open, --: out std_logic_vector(79 downto 0);
+    to_buffer_trans_mem_port_wr_o   =>       to_buffer_trans_mem_port_wr_int(0), --: out std_logic;  
+    to_buffer_trans_mem_port_addr_o =>       to_buffer_trans_mem_port_addr_int, --: out std_logic_vector(16 downto 0);
+    to_buffer_trans_mem_port_data_o =>       to_buffer_trans_mem_port_data_int, --: out std_logic_vector(79 downto 0);
                                    
     to_buffer_vk_mem_port_wr_o      =>       open, --: out std_logic;  
     to_buffer_vk_mem_port_addr_o    =>       open, --: out std_logic_vector(16 downto 0);
@@ -428,7 +441,7 @@ begin
     to_front_end_port_wr_o          =>       valid_fr_mem_intf_to_sys, --: out std_logic;  
     to_front_end_port_data_o        =>       data_fr_mem_intf_to_sys, --: out std_logic_vector(79 downto 0);
                                     
-    gen_proc_h_h_mult_rdy_o         =>       open, --: out std_logic;
+    gen_proc_h_h_mult_rdy_o         =>       done_signal_from_h_h_mult_int, --: out std_logic;
     gen_proc_av_minus_b_rdy_o       =>       open, --: out std_logic;
     gen_proc_vk_mem_rdy_o           =>       open --: out std_logic
                                    
@@ -446,10 +459,16 @@ begin
     PORT MAP( 
     clk_i                     =>     clk_i,             --: in STD_LOGIC;
     rst_i               	    =>     rst_i,--: in std_logic;
-    ena                       =>     dual_port_wr_int(0),  --: in STD_LOGIC;
-    wea                       =>     dual_port_wr_int,--: in STD_LOGIC_VECTOR ( 0 to 0 );
-    addra                     =>     dual_port_addr_int(7 downto 0),--: in STD_LOGIC_VECTOR ( 7 downto 0 );
-    dina                      =>     dual_port_data_int,--: in STD_LOGIC_VECTOR ( 79 downto 0 );
+    --ena                       =>     dual_port_wr_int(0),  --: in STD_LOGIC;
+    --wea                       =>     dual_port_wr_int,--: in STD_LOGIC_VECTOR ( 0 to 0 );
+    --addra                     =>     dual_port_addr_int(7 downto 0),--: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    --dina                      =>     dual_port_data_int,--: in STD_LOGIC_VECTOR ( 79 downto 0 );
+    
+    ena                       =>     ena_to_buffer,  --: in STD_LOGIC;
+    wea                       =>     wea_to_buffer,--: in STD_LOGIC_VECTOR ( 0 to 0 );
+    addra                     =>     addr_to_buffer,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    dina                      =>     data_to_buffer,--: in STD_LOGIC_VECTOR ( 79 downto 0 );
+   
     clkb                      =>     clk_i,--: in STD_LOGIC;
     enb                       =>     dbg_mem_shared_in_enb_int,--: in STD_LOGIC;
     addrb                     =>     dbg_mem_shared_in_addb_int,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
@@ -464,10 +483,10 @@ begin
   	  	
   u6 : entity work.mem_transpose_module
   GENERIC MAP(
-	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      debug_state_i  =>  ZERO_INTEGER,
-	      g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
-	) -- 0 = no debug , 1 = debug
+	    	debug_capture_file_i => ONE_INTEGER,           -- capture file
+	      debug_state_i  =>  ZERO_INTEGER,               -- no writeback to transpose memory
+	      g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i   -- debug state
+	) 
  
   PORT MAP ( 
   clk_i => clk_i,
@@ -482,13 +501,60 @@ begin
   dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
   );
   
-  --------------------------------------------------------------------------------------------------------------
-  -- DEBUG DEBUG DEBUG        Temp logic !!! For Debuggin col rd for H proc                 DEBUG DEBUG DEBUG --
-  --------------------------------------------------------------------------------------------------------------
-  -- Debug theory: we go to H state which issues a turnaround and master then outputs "0001" = H state and '1'=col
+     
+    -----------------------------------------
+    -- Muxes, ena,wea,addr, and data to buffer
+    -----------------------------------------	
+ 
+  
+   mux_select_signals_to_buffer : process(master_mode_int,
+  	                                      dual_port_wr_int,
+  	                                      dual_port_addr_int,
+  	                                      dual_port_data_int,
+  	                                      to_buffer_trans_mem_port_wr_int,
+  	                                      to_buffer_trans_mem_port_addr_int,
+  	                                      to_buffer_trans_mem_port_data_int  
+  	)
+  	begin
+  		
+  		case master_mode_int is
+  			
+  			when "00000" => -- 1d fft
+  					
+  			ena_to_buffer	  <= dual_port_wr_int(0);
+  			wea_to_buffer   <= dual_port_wr_int;
+  			addr_to_buffer  <= dual_port_addr_int(7 downto 0);
+  			data_to_buffer  <= dual_port_data_int;	
+  			
+  		  when "00001" => --2d fft		  		
+  		  			
+  			ena_to_buffer	  <= dual_port_wr_int(0);
+  			wea_to_buffer   <= dual_port_wr_int;
+  			addr_to_buffer  <= dual_port_addr_int(7 downto 0);
+  			data_to_buffer  <= dual_port_data_int;	
+  		
+  		 
+  			when "00011" => -- H proc				
+  						
+  			ena_to_buffer	  <= to_buffer_trans_mem_port_wr_int(0);
+  			wea_to_buffer   <= to_buffer_trans_mem_port_wr_int;
+  			addr_to_buffer  <= to_buffer_trans_mem_port_addr_int(7 downto 0);
+  			data_to_buffer  <= to_buffer_trans_mem_port_data_int;			 
+  			
+  			when others =>  				
+  						
+  			ena_to_buffer	  <= '0';
+  			wea_to_buffer   <= ZERO_VECTOR;
+  			addr_to_buffer  <= (others=> '0');
+  			data_to_buffer  <= (others=> '0');	
+  		 
+  				
+  	 end case;
+  end process	mux_select_signals_to_buffer; 
+  
   mux_select_event_to_mem : process(master_mode_int,
   	                                dual_port_wr_int,
-  	                                valid_fr_mem_intf_to_gen_proc  
+  	                                done_signal_from_h_h_mult_int  
   	)
   	begin
   		
@@ -501,8 +567,9 @@ begin
   		  	event_to_mem  <= dual_port_wr_int(0);
   			
   			when "00011" => -- H proc
-  				event_to_mem <= valid_fr_mem_intf_to_gen_proc;
-  			
+  				--event_to_mem <= valid_fr_mem_intf_to_gen_proc;
+  			  event_to_mem  <= done_signal_from_h_h_mult_int;
+  			  
   			when others =>
   				event_to_mem <= '0';
   				
@@ -513,20 +580,44 @@ begin
     --  f_h  memory
     -----------------------------------------	
      	  	
-  u8 : entity work.mem_big_h_module 
+  --u8 : entity work.mem_big_h_module 
+  --PORT MAP ( 
+  --clk_i => clk_i,
+  --rst_i => rst_i,                                        --clka : in STD_LOGIC;
+  --ena   => sram_en_int,                                          --ena : in STD_LOGIC;
+  --wea   => dummy_input_3,                                --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
+  --addra => sram_addr_int,                               --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
+  --dina  => (others=> '0'),                               --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
+  --douta => data_fr_big_h_mem_to_gen_proc,                --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  --vouta => valid_fr_big_h_mem_to_gen_proc,
+  --dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
+  --);
+
+  --------------------------------------------------------------------------------------------------------------
+  -- DEBUG DEBUG DEBUG        Temp logic !!! For Debuggin col rd for H proc                 DEBUG DEBUG DEBUG --
+  --------------------------------------------------------------------------------------------------------------
+  
+ -- TEMPorary F(H) Use Transpose memory for big F_H(PSF)
+  u9 : entity work.mem_transpose_module
+  GENERIC MAP(
+	      debug_capture_file_i => ZERO_INTEGER, 
+	      debug_state_i  =>  ZERO_INTEGER,
+	      g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
+	) 
+ 
   PORT MAP ( 
   clk_i => clk_i,
   rst_i => rst_i,                                        --clka : in STD_LOGIC;
-  ena   => sram_en_int,                                          --ena : in STD_LOGIC;
-  wea   => dummy_input_3,                                --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
-  addra => sram_addr_int,                               --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
-  dina  => (others=> '0'),                               --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
-  douta => data_fr_big_h_mem_to_gen_proc,                --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  master_mode_i =>   master_mode_int,                    --: in std_logic_vector(4 downto 0);
+  ena   => sram_en_int,                                  --ena : in STD_LOGIC;
+  wea   => sram_wr_en_vec_int,                           --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
+  addra => sram_addr_int,                                --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
+  dina  => data_to_mem_intf_fr_mem_in_buffer,            --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
+  douta => data_fr_big_h_mem_to_gen_proc,                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
   vouta => valid_fr_big_h_mem_to_gen_proc,
   dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
   );
-
-    
+   
     -----------------------------------------
     --  f_h adj memory
     -----------------------------------------	

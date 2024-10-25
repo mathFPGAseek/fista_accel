@@ -889,46 +889,46 @@ end process register_proc;
 -- FIFOS
 -----------------------------------------	
 
-U0 : entity work.fifo_generator_0 
-  PORT MAP (    
-    clk          =>   clk_i, -- in STD_LOGIC;
-    srst         =>   rst_i, -- in STD_LOGIC;
-    din          =>   mux_to_fifo_high_data_in_r, -- in STD_LOGIC_VECTOR ( 79 downto 0 );
-    wr_en        =>   mux_to_fifo_high_valid_in_r, -- in STD_LOGIC;
-    rd_en        =>   fr_mux_to_fifo_high_rd_r, -- in STD_LOGIC;
-    dout         =>   fr_fifo_high_data_out_pd, -- out STD_LOGIC_VECTOR ( 79 downto 0 );
-    full         =>   open, -- out STD_LOGIC;
-    overflow     =>   fr_fifo_high_ovf_pd, -- out STD_LOGIC;
-    empty        =>   open, -- out STD_LOGIC;
-    valid        =>   fr_fifo_high_valid_out_pd, -- out STD_LOGIC;
-    underflow    =>   fr_fifo_high_uf_pd, -- out STD_LOGIC;
-    wr_rst_busy  =>   open, -- out STD_LOGIC;
-    rd_rst_busy  =>   open -- out STD_LOGIC
-  );
+--U0 : entity work.fifo_generator_0 
+--  PORT MAP (    
+--    clk          =>   clk_i, -- in STD_LOGIC;
+--    srst         =>   rst_i, -- in STD_LOGIC;
+--    din          =>   mux_to_fifo_high_data_in_r, -- in STD_LOGIC_VECTOR ( 79 downto 0 );
+--    wr_en        =>   mux_to_fifo_high_valid_in_r, -- in STD_LOGIC;
+--    rd_en        =>   fr_mux_to_fifo_high_rd_r, -- in STD_LOGIC;
+--    dout         =>   fr_fifo_high_data_out_pd, -- out STD_LOGIC_VECTOR ( 79 downto 0 );
+--    full         =>   open, -- out STD_LOGIC;
+--    overflow     =>   fr_fifo_high_ovf_pd, -- out STD_LOGIC;
+--    empty        =>   open, -- out STD_LOGIC;
+--    valid        =>   fr_fifo_high_valid_out_pd, -- out STD_LOGIC;
+--    underflow    =>   fr_fifo_high_uf_pd, -- out STD_LOGIC;
+--    wr_rst_busy  =>   open, -- out STD_LOGIC;
+--    rd_rst_busy  =>   open -- out STD_LOGIC
+--  );
 
 
---fr_fifo_high_data_out_pd   <= mux_to_fifo_high_data_in_r; -- pass thru, no FIFO
---fr_fifo_high_valid_out_pd  <= mux_to_fifo_high_valid_in_r;
+fr_fifo_high_data_out_pd   <= mux_to_fifo_high_data_in_r; -- pass thru, no FIFO
+fr_fifo_high_valid_out_pd  <= mux_to_fifo_high_valid_in_r;
 
-U1 : entity work.fifo_generator_0 
-  PORT MAP (    
-    clk          =>   clk_i, -- in STD_LOGIC;
-    srst         =>   rst_i, -- in STD_LOGIC;
-    din          =>   demux_to_fifo_low_data_in_r, -- in STD_LOGIC_VECTOR ( 79 downto 0 );
-    wr_en        =>   demux_to_fifo_low_valid_in_r, -- in STD_LOGIC;
-    rd_en        =>   fr_mux_to_fifo_low_rd_r, -- in STD_LOGIC;
-    dout         =>   fr_fifo_low_data_out_pd, -- out STD_LOGIC_VECTOR ( 79 downto 0 );
-    full         =>   open, -- out STD_LOGIC;
-    overflow     =>   fr_fifo_low_ovf_pd, -- out STD_LOGIC;
-    empty        =>   open, -- out STD_LOGIC;
-    valid        =>   fr_fifo_low_valid_out_pd, -- out STD_LOGIC;
-    underflow    =>   fr_fifo_low_uf_pd, -- out STD_LOGIC;
-    wr_rst_busy  =>   open, -- out STD_LOGIC;
-    rd_rst_busy  =>   open -- out STD_LOGIC
-  );
+--U1 : entity work.fifo_generator_0 
+--  PORT MAP (    
+--    clk          =>   clk_i, -- in STD_LOGIC;
+--    srst         =>   rst_i, -- in STD_LOGIC;
+--    din          =>   demux_to_fifo_low_data_in_r, -- in STD_LOGIC_VECTOR ( 79 downto 0 );
+--    wr_en        =>   demux_to_fifo_low_valid_in_r, -- in STD_LOGIC;
+--    rd_en        =>   fr_mux_to_fifo_low_rd_r, -- in STD_LOGIC;
+--    dout         =>   fr_fifo_low_data_out_pd, -- out STD_LOGIC_VECTOR ( 79 downto 0 );
+--    full         =>   open, -- out STD_LOGIC;
+--    overflow     =>   fr_fifo_low_ovf_pd, -- out STD_LOGIC;
+--    empty        =>   open, -- out STD_LOGIC;
+--    valid        =>   fr_fifo_low_valid_out_pd, -- out STD_LOGIC;
+--    underflow    =>   fr_fifo_low_uf_pd, -- out STD_LOGIC;
+--    wr_rst_busy  =>   open, -- out STD_LOGIC;
+--    rd_rst_busy  =>   open -- out STD_LOGIC
+--  );
 
---fr_fifo_low_data_out_pd  <= demux_to_fifo_low_data_in_r;
---fr_fifo_low_valid_out_pd <= demux_to_fifo_low_valid_in_r;
+fr_fifo_low_data_out_pd  <= demux_to_fifo_low_data_in_r;
+fr_fifo_low_valid_out_pd <= demux_to_fifo_low_valid_in_r;
 
 
 -----------------------------------------
@@ -939,14 +939,7 @@ U2 : entity work.h_h_star_mult_eng
 		       clk_i                                 => clk_i,
 		       rst_i                                 => rst_i,
 		       master_mode_i                         => master_mode_i,
-		       
-		       -- FIFO inputs
-		       fifo_high_ovf_i                       => fr_fifo_high_ovf_r,
-		       fifo_high_uf_i                        => fr_fifo_high_uf_r,
-		       
-		       fifo_low_ovf_i                        => fr_fifo_low_ovf_r,
-		       fifo_low_uf_i                         => fr_fifo_low_uf_r,	       
-		       
+		    
 		       -- port 1 inputs
 		       
 		       port_1_valid_in_i                     => demux_to_h_mult_eng_port_1_valid_in_r,
@@ -957,17 +950,14 @@ U2 : entity work.h_h_star_mult_eng
 		       port_2_valid_in_i                     => demux_to_h_mult_eng_port_2_valid_in_r,
 		       port_2_data_in_i                      => demux_to_h_mult_eng_port_2_data_in_r,
 		       
-		       -- FIFO outputs
-		       fifo_high_rd_en_o                     => rd_en_fifo_high_fr_h_mult_eng_pr,
-		       fifo_low_rd_en_o                      => rd_en_fifo_low_fr_h_mult_eng_pr,
-		       
+		      
 		       -- Data out
 		       valid_out_o                           => from_h_h_star_eng_valid_pr,
 		       addr_out_o                            => from_h_h_star_eng_addr_pr,
 		       data_out_o                            => from_h_h_star_eng_data_pr,
 		       
 		       -- rdy flag
-		       rdy_o                                 => rdy_flag_fr_h_h_star_mult_eng_pr
+		       h_h_star_done_o                      => rdy_flag_fr_h_h_star_mult_eng_pr
 		       
 	);
 -----------------------------------------
