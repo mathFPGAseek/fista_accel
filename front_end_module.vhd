@@ -76,17 +76,76 @@ signal mux_control_select_r       : std_logic_vector(2 downto 0);
 signal mux_out_to_fft_control_d   : std_logic;	
 signal mux_out_to_fft_control_r   : std_logic;
 
-signal fr_init_data_int           : std_logic_vector(79 downto 0);
+signal rst_n                      : std_logic;
+--signal fr_init_data_int           : std_logic_vector(79 downto 0);
+signal fr_init_data_int_re           : std_logic_vector(39 downto 0);
+signal init_float_data_valid_int_re  : std_logic;
+signal init_float_data_int_re        : std_logic_vector(31 downto 0);
+signal padded_float_data_int_re      : std_logic_vector(79 downto 0);
 
-
-constant PAD_ZEROS  : std_logic_vector(5 downto 0) := (others=> '0');
-
+constant PAD_SIX_ZEROS    : std_logic_vector(5 downto 0) := (others=> '0');
+constant PAD_EIGHT_ZEROS  : std_logic_vector(7 downto 0) := (others=> '0');
+constant PAD_40_ZEROS     : std_logic_vector(39 downto 0) := (others=> '0');
+	
+constant FIVE_E_TO_MINUS_26 : std_logic_vector(31 downto 0) := x"15779688"; -- 5e-26
    
 begin
 
--- correct alignment from inbound flow
 
- fr_init_data_int <= PAD_ZEROS & fr_init_data_i(79 downto 46) & PAD_ZEROS & fr_init_data_i(39 downto 6);	
+rst_n <= not(rst_i);
+	
+	
+	
+------------------------------------------------------------- Using conversion to float-------------------------------------------
+------------------------------------------------------------- But now memory has been converted ----------------------------------
+-- correct alignment from inbound flow..
+
+-- fr_init_data_int <= PAD_ZEROS & fr_init_data_i(79 downto 46) & PAD_ZEROS & fr_init_data_i(39 downto 6);	
+--fr_init_data_int_im <= PAD_SIX_ZEROS & fr_init_data_i(79 downto 46);
+--fr_init_data_int_re <= PAD_SIX_ZEROS & fr_init_data_i(39 downto 6);
+
+ 
+ 	
+-- Convert fixed to float
+
+--U0 : entity work.floating_point_0
+--  PORT MAP( 
+--  aclk                 => aclk,						                  -- aclk : in STD_LOGIC;
+--  s_axis_a_tvalid      => fr_init_data_valid_i,             -- s_axis_a_tvalid : in STD_LOGIC;
+--  s_axis_a_tready      => open,                             -- s_axis_a_tready : out STD_LOGIC;
+--  s_axis_a_tdata       => fr_init_data_int_im,              -- s_axis_a_tdata : in STD_LOGIC_VECTOR ( 39 downto 0 );
+--  m_axis_result_tvalid => init_float_data_valid_int_im,     -- m_axis_result_tvalid : out STD_LOGIC;
+--  m_axis_result_tready => '1',                              -- m_axis_result_tready : in STD_LOGIC;
+--  m_axis_result_tdata  => init_float_data_int_im            -- m_axis_result_tdata : out STD_LOGIC_VECTOR ( 31 downto 0 )
+--  );
+
+--padded_init_float_data_int_im <= PAD_EIGHT_ZEROS & init_float_data_int_im;
+
+--U1 : entity work.floating_point_1
+--  PORT MAP( 
+--  aclk                 => clk_i,						                -- aclk : in STD_LOGIC;
+--  aresetn              => rst_n,
+--  s_axis_a_tvalid      => fr_init_data_valid_i,             -- s_axis_a_tvalid : in STD_LOGIC;
+--  s_axis_a_tready      => open,                             -- s_axis_a_tready : out STD_LOGIC;
+--  s_axis_a_tdata       => fr_init_data_int_re,              -- s_axis_a_tdata : in STD_LOGIC_VECTOR ( 39 downto 0 );
+--  m_axis_result_tvalid => init_float_data_valid_int_re,     -- m_axis_result_tvalid : out STD_LOGIC;
+--  m_axis_result_tready => '1',                              -- m_axis_result_tready : in STD_LOGIC;
+--  m_axis_result_tdata  => init_float_data_int_re            -- m_axis_result_tdata : out STD_LOGIC_VECTOR ( 31 downto 0 )
+--  );
+
+----------------------------------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------------------------------
+
+
+init_float_data_valid_int_re <= fr_init_data_valid_i;
+init_float_data_int_re       <= fr_init_data_i(31 downto 0); -- Real portion
+-- This is nominal data flow
+padded_float_data_int_re <= PAD_40_ZEROS & PAD_EIGHT_ZEROS & init_float_data_int_re;
+
+
+--debug hack; force value to 5.0e-26 to stress test fft
+--padded_float_data_int_re <= PAD_EIGHT_ZEROS & FIVE_E_TO_MINUS_26 & PAD_EIGHT_ZEROS & FIVE_E_TO_MINUS_26;
+
 -----------------------------------------.
 -----------------------------------------
 -- DATA PATH
@@ -142,7 +201,8 @@ begin
     -- Mux output to FFT
     -----------------------------------------.	
     mux_data_to_fft : process (mux_data_select_r,
-    	                         fr_init_data_int,
+    	                         --fr_init_data_int,
+    	                         padded_float_data_int_re,
     	                         fr_back_end_data_i,
     	                         fr_back_end_data2_i,
     	                         fr_fista_data_i,
@@ -155,8 +215,8 @@ begin
     			when "000" =>
     				
     				--mux_out_to_fft_data_d <=  fr_init_data_i;
-    			  mux_out_to_fft_data_d <=  fr_init_data_int;
-
+    			  --mux_out_to_fft_data_d <=  fr_init_data_int;
+            mux_out_to_fft_data_d <= padded_float_data_int_re;
     				
     			when "001" =>
     				
@@ -176,7 +236,9 @@ begin
     		  	   		  	
     		  when others => 
     		  	
-    		  	mux_out_to_fft_data_d <=  fr_init_data_int;
+    		  	--mux_out_to_fft_data_d <=  fr_init_data_int;
+    		  	mux_out_to_fft_data_d <= padded_float_data_int_re;
+
     		  	
         end case;
     end process mux_data_to_fft;
@@ -254,7 +316,8 @@ begin
     -- Mux control output to FFT
     -----------------------------------------..	
     mux_control_to_fft : process(mux_control_select_r,
-    														 fr_init_data_valid_i,
+    														 --fr_init_data_valid_i,
+    														 init_float_data_valid_int_re,
     														 fr_back_end_valid_i,
     														 fr_back_end_valid2_i,
     														 fr_fista_valid_i,
@@ -266,8 +329,9 @@ begin
     			
     			when "000" =>
     				
-    				mux_out_to_fft_control_d <=  fr_init_data_valid_i;
-    				
+    				--mux_out_to_fft_control_d <=  fr_init_data_valid_i;
+    				mux_out_to_fft_control_d <=  init_float_data_valid_int_re;
+
     			when "001" =>
     				
     				mux_out_to_fft_control_d <=  fr_back_end_valid_i; 				
@@ -286,7 +350,9 @@ begin
     		  	   		  	
     		  when others => 
     		  	
-    		  	mux_out_to_fft_control_d <=  fr_init_data_valid_i;
+    		  	--mux_out_to_fft_control_d <=  fr_init_data_valid_i;
+    		  	mux_out_to_fft_control_d <=  init_float_data_valid_int_re;
+
     		  	
         end case;
     end process mux_control_to_fft;

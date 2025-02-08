@@ -185,15 +185,17 @@ architecture struct of fista_accel_top is
   signal dbg_rd_r                          : std_logic_vector(511 downto 0);             
   	
   constant DATA_512_MINUS_80               : std_logic_vector(431 downto 0) := (others => '0');
-  constant ONE                             : natural := 1; -- for selecting  ONE = use debug
-  constant ZERO                            : natural := 0;
   
-  constant ONE_INTEGER                     : integer := 1;
+  constant ZERO                            : natural := 0;	
+  constant ONE                             : natural := 1; -- for selecting  ONE = use debug
+  constant TWO                             : natural := 2;
+  
   constant ZERO_INTEGER                    : integer := 0;
+  constant ONE_INTEGER                     : integer := 1;
   
   constant ZERO_VECTOR                     : std_logic_vector(0 downto 0) := (others => '0');
   
-  constant g_USE_DEBUG_H_INIT_i            : natural := 1; -- set to 1 for H_init sim debug; otherwise 0
+  constant g_USE_DEBUG_H_INIT_i            : natural := 0; -- set to 1 for H_init sim debug; otherwise 0
   
   signal dbg_qualify_state_verify_rd       : std_logic_vector(2 downto 0);
 begin
@@ -374,8 +376,10 @@ begin
     -----------------------------------------
     u3 : entity work.fft_engine_module 
     GENERIC MAP(
-	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      g_USE_DEBUG_i  =>  ZERO
+	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug , 2 = float
+	    --g_USE_DEBUG_i  =>  ZERO
+	    	g_USE_DEBUG_i  =>  TWO
+
 	  ) -- 0 = no debug , 1 = debug
 	  --    g_USE_DEBUG_H_INIT_i  =>  ZERO) -- 0 = no debug , 1 = debug
 
@@ -600,7 +604,7 @@ begin
  -- TEMPorary F(H) Use Transpose memory for big F_H(PSF)
   u9 : entity work.mem_transpose_module
   GENERIC MAP(
-	      debug_capture_file_i => ZERO_INTEGER, 
+	      debug_capture_file_i => ONE_INTEGER, 
 	      debug_state_i  =>  ZERO_INTEGER,
 	      g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
 	) 
