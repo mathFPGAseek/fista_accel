@@ -124,6 +124,7 @@ signal debug_dual_port_addr_r   : std_logic_vector(16 downto 0);
 -------------------------------------------------
 
 constant MAX_SAMPLES : integer := 2**8;  -- maximum number of samples in a frame
+constant MAX_SAMPLES_MINUS_ONE : integer := MAX_SAMPLES -1;
 
 constant IP_WIDTH    : integer := 34;
 constant MEM_WIDTH   : integer := IP_WIDTH*2 -1;
@@ -603,14 +604,14 @@ stall_warning_o      <=  stall_warning_int;
   --    end if;
   --end process state_counter_1;
   --counter for upper index
-  state_counter_2 : process( clk_i, rst_i,clear_state_counter_2_rr)
+  state_counter_2 : process( clk_i, rst_i,clear_state_counter_2_rr,m_axis_data_tlast_int_float)
     begin
       if ( rst_i = '1' ) then
           state_counter_2_r       <=  0 ;
       elsif(clear_state_counter_2_rr = '1') then
           state_counter_2_r       <=  0 ;
       elsif( clk_i'event and clk_i = '1') then
-         if ( m_axis_data_tlast_int = '1') then
+         if ( m_axis_data_tlast_int_float = '1') then
           state_counter_2_r       <=  state_counter_2_r + 1;
          end if;
       end if;
@@ -644,10 +645,10 @@ stall_warning_o      <=  stall_warning_int;
   
    ----------------------------------------
   -- Decode terminal count
-  ----------------------------------------
+  ----------------------------------------.
   decode_terminal_count : process(state_counter_2_r)
   	begin
-  		if (  state_counter_2_r = MAX_SAMPLES ) then
+  		if (  state_counter_2_r = MAX_SAMPLES) then
   			clear_state_counter_2_d <= '1';
   	  else
   	  	clear_state_counter_2_d <= '0';
