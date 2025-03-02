@@ -106,6 +106,7 @@ signal enable_state_counter_2_r     : std_logic;
 
 --constant
 constant FFTSIZE256 : integer := 253; -- Make two less for pipeline latency to be applied
+constant DELAY8     : integer := 8;
 constant DELAY128   : integer := 128;
 constant DELAY256   : integer := 256;
 constant DELAY512   : integer := 512;
@@ -167,7 +168,11 @@ BEGIN
             	
             	decoder_st_d <= "0010"; 
 
-              ns_controller <= state_proc_fft;
+              --if ( state_counter_2_r < DELAY8) then
+              --	ns_controller <= state_config_fwd;
+              --else
+                ns_controller <= state_proc_fft;
+              --end if;
 
            
             when state_config_col_rd =>
@@ -457,8 +462,13 @@ BEGIN
   			clear_state_counter_1_d   <= '1'; 
   			enable_state_counter_1_d  <= '0';
   			
+  			--clear_state_counter_2_d   <= '0'; 
+  			--enable_state_counter_2_d  <= '1'; 
+  			
+  					
   			clear_state_counter_2_d   <= '1'; 
   			enable_state_counter_2_d  <= '0'; 
+   
    
      when "0011" => -- Inv Config
   			
