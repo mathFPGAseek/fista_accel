@@ -72,6 +72,8 @@
 // Reference        :
 // Revision History :
 //*****************************************************************************
+LIBRARY xil_defaultlib;
+
 `ifdef MODEL_TECH
     `ifndef CALIB_SIM
        `define SIMULATION

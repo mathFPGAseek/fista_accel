@@ -29,6 +29,8 @@ USE ieee.numeric_std.ALL;
 use ieee.math_real.all;
 use std.textio.all;
 use ieee.std_logic_textio.all;
+LIBRARY xil_defaultlib;
+USE xil_defaultlib.all;
 
 entity fft_engine_module is
 generic(
@@ -301,10 +303,12 @@ impure function writeToFileMemRawContentsFwd2D(  signal fft_mem   : in MEM_ARRAY
 begin
   
   
-    -----------------------------------------.
+    -----------------------------------------
     -- FFT St mach contoller
     -----------------------------------------	 
-    U0 : entity work.fft_inbound_st_machine_controller
+    --U0 : entity work.fft_inbound_st_machine_controller
+    U0 : entity xil_defaultlib.fft_inbound_st_machine_controller
+
     --GENERIC MAP (
     --g_USE_DEBUG_H_INIT_i  =>  g_USE_DEBUG_H_INIT_i) -- 0 = no debug , 1 = debug
 	  --   
@@ -510,34 +514,34 @@ end generate g_USE_U1_FLOAT;
 -- For debug                       For debug
 --
 --------------------------------------------------
-g_USE_U0_DEBUG : if g_USE_DEBUG_i = 1 generate 
-		u0_dbg : entity work.blk_dbg_wr_mem_gen_0 
-		PORT MAP(  
-    clka    => clk_i,                      --: in STD_LOGIC;
-    ena     => m_axis_data_tvalid_int,     --: in STD_LOGIC;
-    addra   => std_logic_vector(to_unsigned(state_counter_1_r,ADDR_WIDTH)), --: in STD_LOGIC_VECTOR ( 7 downto 0 );
-    douta   => debug_dual_port_int        --: out STD_LOGIC_VECTOR ( 79 downto 0 )
-    );
-    
+--g_USE_U0_DEBUG : if g_USE_DEBUG_i = 1 generate 
+--		u0_dbg : entity work.blk_dbg_wr_mem_gen_0 
+--		PORT MAP(  
+--    clka    => clk_i,                      --: in STD_LOGIC;
+--    ena     => m_axis_data_tvalid_int,     --: in STD_LOGIC;
+--    addra   => std_logic_vector(to_unsigned(state_counter_1_r,ADDR_WIDTH)), --: in STD_LOGIC_VECTOR ( 7 downto 0 );
+--    douta   => debug_dual_port_int        --: out STD_LOGIC_VECTOR ( 79 downto 0 )
+--    );
+   
 -----------------------------------------
 --  delay signals
 -----------------------------------------	    
-delay_dual_port_control_reg : process(clk_i,rst_i)
-	begin
-		if(rst_i = '1') then
-			 debug_dual_port_addr_r <= (others => '0');
-			 debug_dual_port_wr_r   <= '0';
-		elsif(clk_i'event and clk_i = '1') then
-			 debug_dual_port_addr_r <= std_logic_vector(to_unsigned(state_counter_1_r,dual_port_addr_o'length)); 
-			 debug_dual_port_wr_r   <= m_axis_data_tvalid_int;			 
-	  end if;
-end process delay_dual_port_control_reg;
-    
-dual_port_wr_o       <=  debug_dual_port_wr_r;     
-dual_port_addr_o     <=  debug_dual_port_addr_r;         
-dual_port_data_o     <=  debug_dual_port_int; 
-
-end generate g_USE_U0_DEBUG;
+--delay_dual_port_control_reg : process(clk_i,rst_i)
+--	begin
+--		if(rst_i = '1') then
+--			 debug_dual_port_addr_r <= (others => '0');
+--			 debug_dual_port_wr_r   <= '0';
+--		elsif(clk_i'event and clk_i = '1') then
+--			 debug_dual_port_addr_r <= std_logic_vector(to_unsigned(state_counter_1_r,dual_port_addr_o'length)); 
+--			 debug_dual_port_wr_r   <= m_axis_data_tvalid_int;			 
+--	  end if;
+--end process delay_dual_port_control_reg;
+--    
+--dual_port_wr_o       <=  debug_dual_port_wr_r;     
+--dual_port_addr_o     <=  debug_dual_port_addr_r;         
+--dual_port_data_o     <=  debug_dual_port_int; 
+--
+--end generate g_USE_U0_DEBUG;
     
 -----------------------------------------
 --  Assignments
