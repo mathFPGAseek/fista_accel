@@ -176,7 +176,17 @@ architecture struct of fista_accel_top is
  -- 	                                                                debug_state_i  =>  ZERO_INTEGER,
  --
  -------------------------------------------------------------------------------------------------------------
-                                                                                                                              
+ --  Master mode decode:.
+ --  "00000" => -- 1d fft
+ --  "00001" => -- 2d fft
+ --  "00010" => -- H*proc
+ --  "00011" => -- H proc
+ --  "00100" => -- 1d ifft
+ --  "00101" => -- 2d ifft 
+ --  "00110" => -- Av-b( pad and crop optional?)
+ --  "00111" => -- update  
+  	
+  			  event_to_mem  <= done_signal_from_h_h_mult_int;                                                                                                                               
  
   signal   event_to_mem                    : std_logic;                
   constant DEBUG_STATE                     : std_logic_vector(2 downto 0) := "001"; -- DEBUG H
@@ -195,7 +205,12 @@ architecture struct of fista_accel_top is
   
   constant ZERO_VECTOR                     : std_logic_vector(0 downto 0) := (others => '0');
   
-  constant g_USE_DEBUG_H_INIT_i            : natural := 0; -- set to 1 for H_init sim debug; otherwise 0
+  constant g_USE_DEBUG_MODE_i              : natural := 0; 
+                                           -- otherwise 0.
+  																		     -- set to 1 for H,H* sim debug; ( 2 RO Mems)
+  																				 -- set to 2 for FFT/IFFT sim debug;( 1 RO Mem)
+  																				 -- set to 3 for Av-b sim debug;(2 RO Mems)
+  																				 -- set to 4 for Update sim debug;( 1R & 1W Mem))
   
   signal dbg_qualify_state_verify_rd       : std_logic_vector(2 downto 0);
 begin
@@ -207,7 +222,7 @@ begin
     
     u0 : entity work.mem_controller
     GENERIC MAP (
-    	           g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
+    	           g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i
     )
     PORT MAP(
     	
@@ -291,7 +306,7 @@ begin
 --	    generic_i  : in natural);
     GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      g_USE_DEBUG_H_INIT_i  =>  g_USE_DEBUG_H_INIT_i
+	      g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i
 	  )-- 0 = no debug , 1 = debug
 
     PORT MAP (
@@ -357,7 +372,7 @@ begin
     
     u5 : entity work.master_st_machine_controller  
     GENERIC MAP(
-    	          g_USE_DEBUG_H_INIT_i  =>  g_USE_DEBUG_H_INIT_i -- 0 = no debug , 1 = debug
+    	          g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i -- 0 = no debug , 1 = debug
 	
     )       
     PORT MAP(                                
@@ -458,7 +473,9 @@ begin
     u4 : entity work.mem_in_buffer_module
     GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      debug_state_i  =>  ZERO
+	      --debug_state_i  =>  ZERO
+	  g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i -- 0 = no debug , 1 = debug
+
 	  ) -- 0 = no debug , 1 = debug 
     PORT MAP( 
     clk_i                     =>     clk_i,             --: in STD_LOGIC;
@@ -489,7 +506,7 @@ begin
   GENERIC MAP(
 	    	debug_capture_file_i => ONE_INTEGER,           -- capture file
 	      debug_state_i  =>  ZERO_INTEGER,               -- no writeback to transpose memory
-	      g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i   -- debug state
+	      g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i       -- debug state
 	) 
  
   PORT MAP ( 
@@ -606,7 +623,7 @@ begin
   GENERIC MAP(
 	      debug_capture_file_i => ONE_INTEGER, 
 	      debug_state_i  =>  ZERO_INTEGER,
-	      g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
+	      g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i
 	) 
  
   PORT MAP ( 
