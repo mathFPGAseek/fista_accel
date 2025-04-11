@@ -80,7 +80,7 @@ ENTITY mem_st_machine_controller is
 --generic(
 --	    generic_i  : in natural);
 generic (
-	      g_USE_DEBUG_H_INIT_i : in natural := 0
+	      g_USE_DEBUG_MODE_i : in natural := 0
         );
     PORT (
 
@@ -1672,7 +1672,7 @@ generic (
       end if;
    end process st_mach_controller_wr_registers; 
    
-   g_use_u1_no_debug : if g_USE_DEBUG_H_INIT_i = 0 generate -- default condition
+   g_use_u1_no_debug : if g_USE_DEBUG_MODE_i = 0 generate -- default condition
 
     st_mach_controller_mem_and_control_registers : process( clk_i, rst_i )
       begin
@@ -1801,7 +1801,7 @@ generic (
   
   end generate g_use_u1_no_debug;
  
- g_use_u1_h_init_debug : if g_USE_DEBUG_H_INIT_i = 1 generate -- default condition
+ g_use_u1_h_init_debug : if g_USE_DEBUG_MODE_i = 1 generate -- default condition
 
     st_mach_controller_mem_and_control_registers : process( clk_i, rst_i )
       begin

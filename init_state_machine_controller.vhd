@@ -32,7 +32,7 @@ entity init_st_machine_controller is
 
     generic(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      g_USE_DEBUG_H_INIT_i : in natural := 0
+	      g_USE_DEBUG_MODE_i : in natural := 0
 	         ); -- 0 = no debug , 1 = debug
            
     port(                                
@@ -219,7 +219,7 @@ BEGIN
   -----------------------------------------
   -- Main State Machine (Reg) Mem & Control Signals
   -----------------------------------------
-  g_use_u1_no_debug : if g_USE_DEBUG_H_INIT_i = 0 generate -- default condition
+  g_use_u1_no_debug : if g_USE_DEBUG_MODE_i = 0 generate -- default condition
 
     st_mach_controller_registers : process( clk_i, rst_i )
       begin
@@ -247,7 +247,7 @@ BEGIN
   
   end generate g_use_u1_no_debug;
   
- g_use_u1_h_init_debug : if g_USE_DEBUG_H_INIT_i = 1 generate -- default condition
+ g_use_u1_h_init_debug : if g_USE_DEBUG_MODE_i = 1 generate -- default condition
 
     st_mach_controller_registers : process( clk_i, rst_i )
       begin

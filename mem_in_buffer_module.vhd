@@ -3,7 +3,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity mem_in_buffer_module is
 	generic(
-  	       debug_state_i : in natural := 0);
+  	       g_USE_DEBUG_MODE_i : in natural := 0);
   
   
   Port ( 

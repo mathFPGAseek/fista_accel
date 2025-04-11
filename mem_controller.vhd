@@ -55,7 +55,7 @@ entity mem_controller is
 --generic(
 --	    generic_i  : in natural);
     generic (
-    	    g_USE_DEBUG_H_INIT_i : in natural := 0
+    	    g_USE_DEBUG_MODE_i : in natural := 0
     );
     port (
 
@@ -198,7 +198,7 @@ begin
     
     u0 : entity work.mem_st_machine_controller
     GENERIC MAP(
-    	         g_USE_DEBUG_H_INIT_i => g_USE_DEBUG_H_INIT_i
+    	         g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i
     )
     PORT MAP(
     	

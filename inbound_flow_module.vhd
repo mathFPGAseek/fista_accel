@@ -33,7 +33,7 @@ entity inbound_flow_module is
 
     generic(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      g_USE_DEBUG_H_INIT_i : in natural :=  0
+	      g_USE_DEBUG_MODE_i : in natural :=  0
 	  ); -- 0 = no debug , 1 = debug
 
     port (
@@ -85,7 +85,7 @@ begin
     U0 : entity work.init_st_machine_controller
     GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      g_USE_DEBUG_H_INIT_i  =>  g_USE_DEBUG_H_INIT_i -- 0 = no debug , 1 = debug
+	      g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i -- 0 = no debug , 1 = debug
     )
     
     PORT MAP(

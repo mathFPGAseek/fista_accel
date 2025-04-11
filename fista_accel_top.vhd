@@ -186,7 +186,7 @@ architecture struct of fista_accel_top is
  --  "00110" => -- Av-b( pad and crop optional?)
  --  "00111" => -- update  
   	
-  			  event_to_mem  <= done_signal_from_h_h_mult_int;                                                                                                                               
+  			                                                                                                                            
  
   signal   event_to_mem                    : std_logic;                
   constant DEBUG_STATE                     : std_logic_vector(2 downto 0) := "001"; -- DEBUG H

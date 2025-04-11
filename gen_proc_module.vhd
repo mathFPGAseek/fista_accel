@@ -18,7 +18,7 @@
 --    `"--......--"`
 --
 -- Created By: RBD
--- filename: fft_engine_module.vhd
+-- filename: gen_proc_module.vhd
 -- Initial Date: 6/19/24
 -- Descr: Gen processor engine has (4) modes
 -- FFT proc: Gen proc in bypass mode & write to F/E
@@ -82,8 +82,8 @@ end gen_proc_module;
 architecture struct of gen_proc_module is
 	
 -- master mode signals
-signal master_mode_upper_bits_d                  : std_logic_vector(3 downto 0);
-signal master_mode_upper_bits_r                  : std_logic_vector(3 downto 0);
+signal master_mode_upper_bits_d                  : std_logic_vector(4 downto 0);
+signal master_mode_upper_bits_r                  : std_logic_vector(4 downto 0);
 	
 -- mux control for rd fifo signals
 signal mux_decode_for_fifo_rd_d                  : std_logic_vector(1 downto 0);
@@ -246,18 +246,20 @@ constant ADDR_WIDTH : integer := 8;
 
 begin
 
- master_mode_upper_bits_d <= master_mode_i(4 downto 1);
+ master_mode_upper_bits_d <= master_mode_i(4 downto 0);
  	 
 -----------------------------------------
 -- Decode for Mux and Demux control
 -----------------------------------------	 
-decode_logic_for_mux_demux_control : process(master_mode_upper_bits_r)
+--decode_logic_for_mux_demux_control : process(master_mode_upper_bits_r)
+decode_logic_for_mux_demux_control : process(master_mode_i)
+
 begin
 	
 	case master_mode_upper_bits_r is
 		
 				
-		when  "0000" => -- Bypass processing
+		when  "00000" => -- Bypass processing 1-d fft or 1d ifft / 2-d fft or 2d ifft
 								
 			mux_decode_for_fifo_rd_d             <=   "00"; -- set for h mult but a Don't care for bypass
 			mux_decode_for_fifo_high_d           <=   "00"; -- same as above
@@ -266,9 +268,21 @@ begin
 			mux_decode_for_fr_engines_d          <=   "00"; -- same as above
 			mux_decode_to_buffer_d               <=   '0';
 			mux_decode_to_vk_mem_d               <=   '0';
-			mux_decode_to_front_end_d            <= 	"10";			
+			mux_decode_to_front_end_d            <= 	"10";	
 		
-		when  "0001" => -- H processing
+	  		
+		when  "00001" => -- Bypass processing 1-d fft or 1d ifft / 2-d fft or 2d ifft
+								
+			mux_decode_for_fifo_rd_d             <=   "00"; -- set for h mult but a Don't care for bypass
+			mux_decode_for_fifo_high_d           <=   "00"; -- same as above
+			demux_decode_for_trans_d             <=   '0';
+			demux_decode_for_internal_engines_d  <=   "00"; -- same as above
+			mux_decode_for_fr_engines_d          <=   "00"; -- same as above
+			mux_decode_to_buffer_d               <=   '0';
+			mux_decode_to_vk_mem_d               <=   '0';
+			mux_decode_to_front_end_d            <= 	"10";		
+		
+		when  "00011" => -- H processing
 			
 			mux_decode_for_fifo_rd_d             <=  "00";
 			mux_decode_for_fifo_high_d           <=  "00";
@@ -279,7 +293,7 @@ begin
 			mux_decode_to_vk_mem_d               <=  '0';
 			mux_decode_to_front_end_d            <=  "00";
 			
-		when  "0010" => -- H* processing
+		when  "00010" => -- H* processing
 					
 			mux_decode_for_fifo_rd_d             <=  "00";
 			mux_decode_for_fifo_high_d           <=  "01";
@@ -290,7 +304,7 @@ begin
 			mux_decode_to_vk_mem_d               <=  '0';
 			mux_decode_to_front_end_d            <=  "00";
 			
-		when  "0011" => -- Av-b processing
+		when  "00110" => -- Av-b processing
 								
 			mux_decode_for_fifo_rd_d             <=  "01";
 			mux_decode_for_fifo_high_d           <=  "10";
@@ -302,7 +316,7 @@ begin
 			mux_decode_to_front_end_d            <=  "00";
 	
 				
-		when  "0100" => -- Update processing			
+		when  "00111" => -- Update processing			
 					
 			mux_decode_for_fifo_rd_d             <=   "10";
 			mux_decode_for_fifo_high_d           <=   "11";
@@ -850,7 +864,7 @@ begin
     mux_to_front_end_data_out_r               <= mux_to_front_end_data_out_d;
     
     
-    -- Dedicated FIFO control & status
+    -- Dedicated FIFO control & status.
     	
    	fr_mux_to_fifo_high_rd_r                  <= fr_mux_to_fifo_high_rd_d;
    	fr_mux_to_fifo_low_rd_r                   <= fr_mux_to_fifo_low_rd_d;  	

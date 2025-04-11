@@ -19,7 +19,7 @@ entity mem_transpose_module is
   generic(
   	       debug_capture_file_i : integer := 0;
   	       debug_state_i : in integer := 0;         -- = 0 no write = 1 write
-  	       g_USE_DEBUG_H_INIT_i : in natural := 0   -- To use COE file
+  	       g_USE_DEBUG_MODE_i : in natural := 0   -- To use COE file
   	     );
   
   Port (
@@ -212,7 +212,7 @@ begin
   -- Transpose mem_intf
   -----------------------------------------.	
   --g_use_u1_no_debug : if debug_state_i = 0 generate -- default condition
- g_use_u1_no_debug : if g_USE_DEBUG_H_INIT_i = 0 generate -- default condition
+ g_use_u1_no_debug : if g_USE_DEBUG_MODE_i = 0 generate -- default condition
  		
   	u1 : entity work.blk_mem_image_gen_0 
   	PORT MAP ( 
@@ -232,7 +232,7 @@ begin
  write_control_from_generic <= std_logic_vector(to_unsigned(debug_state_i,write_control_from_generic'length));
  	
  --g_use_u2_fwd_2d_A_debug : if debug_state_i = 1 generate -- debug H
- g_use_u2_fwd_2d_A_debug : if g_USE_DEBUG_H_INIT_i = 1 generate -- debug H
+ g_use_u2_fwd_2d_A_debug : if g_USE_DEBUG_MODE_i = 1 generate -- debug H
   		
   	u2 : entity work.blk_mem_fwd_2d_A_image_gen_0 
   	PORT MAP ( 
