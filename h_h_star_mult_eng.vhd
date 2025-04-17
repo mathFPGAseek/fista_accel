@@ -29,6 +29,9 @@ USE ieee.numeric_std.ALL;
 use ieee.math_real.all;
 use std.textio.all;
 use ieee.std_logic_textio.all;
+LIBRARY xil_defaultlib;
+USE xil_defaultlib.all;
+
 
 entity h_h_star_mult_eng is
 --generic(
@@ -87,10 +90,15 @@ signal ac_minus_bd_valid_d             : std_logic;
 signal ac_minus_bd_valid_r             : std_logic;
 
 signal ad_plus_bc_valid_d              : std_logic;
-signal ad_plus_bc_valid_r              : std_logic;  
+signal ad_plus_bc_valid_r              : std_logic;
+
+  
+signal ac_minus_bd_data_d               : std_logic_vector( 31 downto 0);
+signal ac_minus_bd_data_r               : std_logic_vector( 31 downto 0);
+  
   
 signal ad_plus_bc_data_d               : std_logic_vector( 31 downto 0);
-signal ac_minus_bd_data_d              : std_logic_vector( 31 downto 0);
+signal ad_plus_bc_data_r               : std_logic_vector( 31 downto 0);
 	
 signal port_1_u1_rdy                   : std_logic;
 signal port_2_u1_rdy                   : std_logic;
@@ -100,6 +108,12 @@ signal port_1_u3_rdy                   : std_logic;
 signal port_2_u3_rdy                   : std_logic;
 signal port_1_u4_rdy                   : std_logic;
 signal port_2_u4_rdy                   : std_logic;
+signal port_1_u5_rdy                   : std_logic;
+signal port_2_u5_rdy                   : std_logic;
+signal port_1_u6_rdy                   : std_logic;
+signal port_2_u6_rdy                   : std_logic;
+
+signal addr_int                        : std_logic_vector(7 downto 0);
 
 --signal s_axis_a_tlast_int            : std_logic;
 --signal s_axis_b_tlast_int            : std_logic;
@@ -111,6 +125,8 @@ signal port_2_u4_rdy                   : std_logic;
 --signal not_reset                     : std_logic;
 
 constant PAD_EIGHT_ZEROS : std_logic_vector(7 downto 0) := (others=> '0');
+constant PAD_NINE_ZEROS  : std_logic_vector(8 downto 0) := (others=> '0');
+
 
 
 begin
@@ -119,7 +135,9 @@ begin
     -----------------------------------------.
     -- H H_star St mach contoller
     -----------------------------------------	 
-    U0 : entity work.h_hstar_inbound_state_machine_controller            
+    U0 : entity xil_defaultlib.h_hstar_inbound_state_machine_controller 
+    --U0 : entity work.h_hstar_inbound_state_machine_controller            
+           
     PORT MAP(                                
     	                                   
     	  clk_i                  => clk_i,        -- : in std_logic; --clk_i,
@@ -130,7 +148,7 @@ begin
                            
         s_axis_data_tlast_o    => open,-- : out std_logic;
         
-        buffer_addr_o          => addr_out_o,
+        buffer_addr_o          => addr_int,
                 
         h_h_star_done_o        => h_h_star_done_o 
                             
@@ -156,11 +174,11 @@ begin
 --    m_axis_dout_tdata     =>    data_out_o --: out STD_LOGIC_VECTOR ( 79 downto 0 ).
 --  );
 
---   Port 1 : A + Bi
+--   Port 1 : A + Bi.
 --   Port 2 : C + Di
 --   (AC - BD) Re + (AD + BC) Im
 
-U1: entity work.floating_point_mult_0 -- A(Re)*C(Re)
+U1: entity xil_defaultlib.floating_point_mult_0 -- A(Re)*C(Re)
   PORT MAP ( 
   aclk                   => clk_i,    --- aclk : in STD_LOGIC;
   s_axis_a_tvalid        => port_1_valid_in_i,         -- s_axis_a_tvalid : in STD_LOGIC;
@@ -168,29 +186,29 @@ U1: entity work.floating_point_mult_0 -- A(Re)*C(Re)
   s_axis_a_tdata         => port_1_data_in_i(31 downto 0),         -- s_axis_a_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
   s_axis_b_tvalid        => port_2_valid_in_i,         -- s_axis_b_tvalid : in STD_LOGIC;
   s_axis_b_tready        => port_2_u1_rdy,         -- s_axis_b_tready : out STD_LOGIC;
-  s_axis_b_tdata         => port_2_data_on_i(31 downto 0),         -- s_axis_b_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+  s_axis_b_tdata         => port_2_data_in_i(31 downto 0),         -- s_axis_b_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
   m_axis_result_tvalid   => ac_data_valid,         -- m_axis_result_tvalid : out STD_LOGIC;
   m_axis_result_tready   => '1',         -- m_axis_result_tready : in STD_LOGIC;
   m_axis_result_tdata    => ac_data         -- m_axis_result_tdata : out STD_LOGIC_VECTOR ( 31 downto 0 )
   );
  
 
-U2: entity work.floating_point_mult_0 -- B(Im)*D(Im)
+U2: entity xil_defaultlib.floating_point_mult_0 -- B(Im)*D(Im)
   PORT MAP ( 
   aclk                   => clk_i,    --- aclk : in STD_LOGIC;
   s_axis_a_tvalid        => port_1_valid_in_i,         -- s_axis_a_tvalid : in STD_LOGIC;
   s_axis_a_tready        => port_1_u2_rdy,         -- s_axis_a_tready : out STD_LOGIC;
-  s_axis_a_tdata         => port_1_data_in_i(71 downto 0),         -- s_axis_a_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+  s_axis_a_tdata         => port_1_data_in_i(71 downto 40),         -- s_axis_a_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
   s_axis_b_tvalid        => port_2_valid_in_i,         -- s_axis_b_tvalid : in STD_LOGIC;
   s_axis_b_tready        => port_2_u2_rdy,         -- s_axis_b_tready : out STD_LOGIC;
-  s_axis_b_tdata         => port_2_data_on_i(71 downto 40),         -- s_axis_b_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+  s_axis_b_tdata         => port_2_data_in_i(71 downto 40),         -- s_axis_b_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
   m_axis_result_tvalid   => bd_data_valid,         -- m_axis_result_tvalid : out STD_LOGIC;
   m_axis_result_tready   => '1',         -- m_axis_result_tready : in STD_LOGIC;
   m_axis_result_tdata    => bd_data         -- m_axis_result_tdata : out STD_LOGIC_VECTOR ( 31 downto 0 )
   ); 
 
 
-U3: entity work.floating_point_mult_0 -- A(Re)*D(Im)
+U3: entity xil_defaultlib.floating_point_mult_0 -- A(Re)*D(Im)
   PORT MAP ( 
   aclk                   => clk_i,    --- aclk : in STD_LOGIC;
   s_axis_a_tvalid        => port_1_valid_in_i,         -- s_axis_a_tvalid : in STD_LOGIC;
@@ -198,22 +216,22 @@ U3: entity work.floating_point_mult_0 -- A(Re)*D(Im)
   s_axis_a_tdata         => port_1_data_in_i(31 downto 0),         -- s_axis_a_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
   s_axis_b_tvalid        => port_2_valid_in_i,         -- s_axis_b_tvalid : in STD_LOGIC;
   s_axis_b_tready        => port_2_u3_rdy,         -- s_axis_b_tready : out STD_LOGIC;
-  s_axis_b_tdata         => port_2_data_on_i(71 downto 40),         -- s_axis_b_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+  s_axis_b_tdata         => port_2_data_in_i(71 downto 40),         -- s_axis_b_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
   m_axis_result_tvalid   => ad_data_valid,         -- m_axis_result_tvalid : out STD_LOGIC;
   m_axis_result_tready   => '1',         -- m_axis_result_tready : in STD_LOGIC;
   m_axis_result_tdata    => ad_data         -- m_axis_result_tdata : out STD_LOGIC_VECTOR ( 31 downto 0 )
   );
   
   
-U4: entity work.floating_point_mult_0 -- B(Im)*C(Re)
+U4: entity xil_defaultlib.floating_point_mult_0 -- B(Im)*C(Re)
   PORT MAP ( 
   aclk                   => clk_i,    --- aclk : in STD_LOGIC;
   s_axis_a_tvalid        => port_1_valid_in_i,         -- s_axis_a_tvalid : in STD_LOGIC;
   s_axis_a_tready        => port_1_u4_rdy,         -- s_axis_a_tready : out STD_LOGIC;
-  s_axis_a_tdata         => port_1_data_in_i(71 downto 0),         -- s_axis_a_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+  s_axis_a_tdata         => port_1_data_in_i(71 downto 40),         -- s_axis_a_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
   s_axis_b_tvalid        => port_2_valid_in_i,         -- s_axis_b_tvalid : in STD_LOGIC;
   s_axis_b_tready        => port_2_u4_rdy,         -- s_axis_b_tready : out STD_LOGIC;
-  s_axis_b_tdata         => port_2_data_on_i(31 downto 0),         -- s_axis_b_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
+  s_axis_b_tdata         => port_2_data_in_i(31 downto 0),         -- s_axis_b_tdata : in STD_LOGIC_VECTOR ( 31 downto 0 );
   m_axis_result_tvalid   => bc_data_valid,         -- m_axis_result_tvalid : out STD_LOGIC;
   m_axis_result_tready   => '1',         -- m_axis_result_tready : in STD_LOGIC;
   m_axis_result_tdata    => bc_data         -- m_axis_result_tdata : out STD_LOGIC_VECTOR ( 31 downto 0 )
@@ -223,7 +241,7 @@ U4: entity work.floating_point_mult_0 -- B(Im)*C(Re)
  -- (AC - BD ) Re
  -----------------------------------------.	
 
- U5: entity work.floating_point_sub_0
+ U5: entity xil_defaultlib.floating_point_sub_0
   PORT MAP ( 
    aclk                   => clk_i, --: in STD_LOGIC;
    s_axis_a_tvalid        => sub_re_input_valid_r,--s_axis_a_tvalid : in STD_LOGIC;
@@ -242,7 +260,7 @@ U4: entity work.floating_point_mult_0 -- B(Im)*C(Re)
  -- (AD + BC ) Im
  -----------------------------------------
  
- U6: entity work.floating_point_add_0
+ U6: entity xil_defaultlib.floating_point_add_0
   PORT MAP ( 
    aclk                   => clk_i, --: in STD_LOGIC;
    s_axis_a_tvalid        => add_im_input_valid_r,--s_axis_a_tvalid : in STD_LOGIC;
@@ -258,8 +276,8 @@ U4: entity work.floating_point_mult_0 -- B(Im)*C(Re)
   
  
   
-  sub_re_input_valid_d <= ac_data_valid && bd_data_valid;
-  add_im_input_valid_d <= ad_data_valid && bc_data_valid;
+  sub_re_input_valid_d <= ac_data_valid and bd_data_valid;
+  add_im_input_valid_d <= ad_data_valid and bc_data_valid;
   
   -----------------------------------------.
   --  Register Valids
@@ -311,11 +329,11 @@ U4: entity work.floating_point_mult_0 -- B(Im)*C(Re)
   end process reg_data;
   
  
-  -----------------------------------------.
+  -----------------------------------------
   -- Output Data  & Output Valid
   -----------------------------------------	 
   
-  valid_o    <= ac_minus_bd_valid_r && ad_plus_bc_valid_r;
-  data_out_o <= PAD_EIGHT_ZEROS & ad_plus_bc_data_r( 31 downto 0) & PAD_EIGHT_ZEROS & ac_minus_bd_data_r(31 downto 0);
-  			                   
+  valid_out_o    <= ac_minus_bd_valid_r and ad_plus_bc_valid_r;
+  data_out_o     <= PAD_EIGHT_ZEROS & ad_plus_bc_data_r( 31 downto 0) & PAD_EIGHT_ZEROS & ac_minus_bd_data_r(31 downto 0);
+  addr_out_o 	   <= PAD_NINE_ZEROS & addr_int;		                   
 end architecture struct;	

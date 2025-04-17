@@ -32,6 +32,9 @@ USE ieee.numeric_std.ALL;
 use ieee.math_real.all;
 use std.textio.all;
 use ieee.std_logic_textio.all;
+LIBRARY xil_defaultlib;
+USE xil_defaultlib.all;
+
 
 entity gen_proc_module is
 generic(
@@ -948,37 +951,37 @@ fr_fifo_low_valid_out_pd <= demux_to_fifo_low_valid_in_r;
 -----------------------------------------
 -- H & H* Mult
 -----------------------------------------.
---U2 : entity work.h_h_star_mult_eng
---	PORT MAP(
---		       clk_i                                 => clk_i,
---		       rst_i                                 => rst_i,
---		       master_mode_i                         => master_mode_i,
+U2 : entity xil_defaultlib.h_h_star_mult_eng
+	PORT MAP(
+		       clk_i                                 => clk_i,
+		       rst_i                                 => rst_i,
+		       master_mode_i                         => master_mode_i,
 		    
 		       -- port 1 inputs
 		       
---		       port_1_valid_in_i                     => demux_to_h_mult_eng_port_1_valid_in_r,
---		       port_1_data_in_i                      => demux_to_h_mult_eng_port_1_data_in_r,
+		       port_1_valid_in_i                     => demux_to_h_mult_eng_port_1_valid_in_r,
+		       port_1_data_in_i                      => demux_to_h_mult_eng_port_1_data_in_r,
 		       
 		       -- port 2 inputs
 		       
---		       port_2_valid_in_i                     => demux_to_h_mult_eng_port_2_valid_in_r,
---		       port_2_data_in_i                      => demux_to_h_mult_eng_port_2_data_in_r,
+		       port_2_valid_in_i                     => demux_to_h_mult_eng_port_2_valid_in_r,
+		       port_2_data_in_i                      => demux_to_h_mult_eng_port_2_data_in_r,
 		       
 		      
 		       -- Data out
---		       valid_out_o                           => from_h_h_star_eng_valid_pr,
---		       addr_out_o                            => from_h_h_star_eng_addr_pr,
---		       data_out_o                            => from_h_h_star_eng_data_pr,
+		       valid_out_o                           => from_h_h_star_eng_valid_pr,
+		       addr_out_o                            => from_h_h_star_eng_addr_pr,
+		       data_out_o                            => from_h_h_star_eng_data_pr,
 		       
 		       -- rdy flag
---		       h_h_star_done_o                      => rdy_flag_fr_h_h_star_mult_eng_pr
+		       h_h_star_done_o                      => rdy_flag_fr_h_h_star_mult_eng_pr
 		       
---	);
+);
 	
-	from_h_h_star_eng_valid_pr <= '0';
-	from_h_h_star_eng_addr_pr  <= (others=> '0');
-	from_h_h_star_eng_data_pr  <= (others=> '0');
-	rdy_flag_fr_h_h_star_mult_eng_pr <= '0';	
+--	from_h_h_star_eng_valid_pr <= '0';
+--	from_h_h_star_eng_addr_pr  <= (others=> '0');
+--	from_h_h_star_eng_data_pr  <= (others=> '0');
+--	rdy_flag_fr_h_h_star_mult_eng_pr <= '0';	
 	
 -----------------------------------------
 -- Av-b 

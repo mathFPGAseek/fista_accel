@@ -22,12 +22,12 @@
 -- Initial Date: 10/5/24
 -- Descr:  H H Start Inbound FFT state machine
 -- Read continuously from memory and provide a seq addr
-------------------------------------------------
+------------------------------------------------.
 LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 
-entity h_hstar_inbound_st_machine_controller is            
+entity h_hstar_inbound_state_machine_controller is            
     port(                                
     	                                   
     	  clk_i               : in std_logic;                      -- : in std_logic; --clk_i,
@@ -46,9 +46,9 @@ entity h_hstar_inbound_st_machine_controller is
     
                              
 
-end h_hstar_inbound_st_machine_controller;                                          
+end h_hstar_inbound_state_machine_controller;                                          
 
-architecture struct of h_hstar_inbound_st_machine_controller is  
+architecture struct of h_hstar_inbound_state_machine_controller is  
 	
 -- signals
 signal decoder_st_d                 : std_logic_vector ( 3 downto 0 );
