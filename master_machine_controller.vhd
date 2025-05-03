@@ -187,7 +187,7 @@ BEGIN
        	
        	
         -- decoder 
-        decoder_st_r                <= "0001"; -- init state
+        decoder_st_r                <= "0011"; -- init state
         master_mode_r               <= (others=>'0');
         
         ps_controller               <= state_wr_fwd_2d_A;

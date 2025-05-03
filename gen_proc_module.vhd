@@ -38,7 +38,9 @@ USE xil_defaultlib.all;
 
 entity gen_proc_module is
 generic(
-	     g_USE_DEBUG_i  : in natural := 1);
+	     --g_USE_DEBUG_i  : in natural := 1);
+	     g_USE_DEBUG_MODE_i : in natural:= 0
+	     );
     port (
 
 	  clk_i               	         		: in std_logic;
@@ -952,6 +954,9 @@ fr_fifo_low_valid_out_pd <= demux_to_fifo_low_valid_in_r;
 -- H & H* Mult
 -----------------------------------------.
 U2 : entity xil_defaultlib.h_h_star_mult_eng
+	GENERIC MAP(
+			g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i
+	)
 	PORT MAP(
 		       clk_i                                 => clk_i,
 		       rst_i                                 => rst_i,

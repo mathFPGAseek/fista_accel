@@ -29,9 +29,9 @@ USE ieee.numeric_std.ALL;
 
     
 entity fft_inbound_st_machine_controller is
-	  --generic(
-	  --	      g_USE_DEBUG_H_INIT_i : in natural := 0);
-	  --)           
+	  generic(
+	  	      g_USE_DEBUG_MODE_i : in natural := 0
+	  );           
     port(                                
     	                                   
     	  clk_i                  : in std_logic; --clk_i, --: in std_logic;.
@@ -374,8 +374,8 @@ BEGIN
         
   -----------------------------------------
   -- Main State Machine (Reg) Mem & Control Signals
-  -----------------------------------------
-
+  -----------------------------------------.
+  g_use_u0_no_debug : if g_USE_DEBUG_MODE_i = 0 generate
     st_mach_controller_registers : process( clk_i, rst_i )
       begin
        if( rst_i = '1') then
@@ -411,6 +411,45 @@ BEGIN
             	
        end if;
    end process st_mach_controller_registers;       	
+  end generate g_use_u0_no_debug;
+  
+  g_use_u1_debug_h : if g_USE_DEBUG_MODE_i = 1 generate
+    st_mach_controller_registers : process( clk_i, rst_i )
+      begin
+       if( rst_i = '1') then
+       	
+       	
+        -- decoder 
+       decoder_st_r           <= "0001"; -- init state
+        
+       s_axis_config_valid_r  <= '0';            --: out std_logic;
+       s_axis_config_tdata_r  <= (others=> '0'); --: out std_logic_vector(15 downto 0);        
+       s_axis_data_tvalid_r   <= '0';            --: out std_logic;       
+       stall_warning_r        <= '0';
+       
+       fft_rdy_r              <= '0';
+
+        
+        ps_controller               <= state_init;
+        			
+       elsif(clk_i'event and clk_i = '1') then
+         
+        -- decoder
+        decoder_st_r          <= decoder_st_d;
+                
+        s_axis_config_valid_r  <= s_axis_config_valid_d;        
+        s_axis_config_tdata_r  <= s_axis_config_tdata_d;           
+        s_axis_data_tvalid_r   <= s_axis_data_tvalid_d;                 
+        stall_warning_r        <= stall_warning_d;
+       
+        fft_rdy_r              <= fft_rdy_d;
+
+        
+        ps_controller               <= ns_controller;       			           	
+            	
+       end if;
+   end process st_mach_controller_registers;       	
+  end generate g_use_u1_debug_h;
   
   -----------------------------------------
   -- s_axis_data_tlast Decoder

@@ -205,7 +205,8 @@ architecture struct of fista_accel_top is
   
   constant ZERO_VECTOR                     : std_logic_vector(0 downto 0) := (others => '0');
   
-  constant g_USE_DEBUG_MODE_i              : natural := 0; 
+  constant g_USE_DEBUG_MODE_i              --: natural := 0; .
+                                           : natural := 1;
                                            -- otherwise 0.
   																		     -- set to 1 for H,H* sim debug; ( 2 RO Mems)
   																				 -- set to 2 for FFT/IFFT sim debug;( 1 RO Mem)
@@ -393,7 +394,9 @@ begin
     GENERIC MAP(
 	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug , 2 = float
 	    --g_USE_DEBUG_i  =>  ZERO
-	    	g_USE_DEBUG_i  =>  TWO
+	    	g_USE_DEBUG_i  =>  TWO, -- 2 = use float
+	    	g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i 
+
 
 	  ) -- 0 = no debug , 1 = debug
 	  --    g_USE_DEBUG_H_INIT_i  =>  ZERO) -- 0 = no debug , 1 = debug
@@ -420,11 +423,13 @@ begin
     
     -----------------------------------------
     -- general procesor engine  (back_end)
-    -----------------------------------------.	
+    -----------------------------------------.
     
     u7 : entity work.gen_proc_module 
-    --generic(
-	  --   g_USE_DEBUG_i  : in natural := 1);
+    GENERIC MAP(
+	    	    	g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i 
+    )
+    
     PORT MAP(
 
 	  clk_i               	         	=>      clk_i , --: in std_logic;
@@ -599,31 +604,13 @@ begin
   		
     -----------------------------------------
     --  f_h  memory
-    -----------------------------------------	
-     	  	
-  --u8 : entity work.mem_big_h_module 
-  --PORT MAP ( 
-  --clk_i => clk_i,
-  --rst_i => rst_i,                                        --clka : in STD_LOGIC;
-  --ena   => sram_en_int,                                          --ena : in STD_LOGIC;
-  --wea   => dummy_input_3,                                --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
-  --addra => sram_addr_int,                               --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
-  --dina  => (others=> '0'),                               --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
-  --douta => data_fr_big_h_mem_to_gen_proc,                --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
-  --vouta => valid_fr_big_h_mem_to_gen_proc,
-  --dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
-  --);
-
-  --------------------------------------------------------------------------------------------------------------
-  -- DEBUG DEBUG DEBUG        Temp logic !!! For Debuggin col rd for H proc                 DEBUG DEBUG DEBUG --
-  --------------------------------------------------------------------------------------------------------------
-  
- -- TEMPorary F(H) Use Transpose memory for big F_H(PSF)
-  u9 : entity work.mem_transpose_module
+    -----------------------------------------	.
+  	  	
+  u9 : entity work.mem_h_psf_module
   GENERIC MAP(
-	      debug_capture_file_i => ONE_INTEGER, 
-	      debug_state_i  =>  ZERO_INTEGER,
-	      g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i
+	    	debug_capture_file_i => ONE_INTEGER,           -- capture file
+	      debug_state_i  =>  ZERO_INTEGER,               -- no writeback to transpose memory
+	      g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i       -- debug state
 	) 
  
   PORT MAP ( 
@@ -636,9 +623,9 @@ begin
   dina  => data_to_mem_intf_fr_mem_in_buffer,            --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
   douta => data_fr_big_h_mem_to_gen_proc,                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
   vouta => valid_fr_big_h_mem_to_gen_proc,
-  dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
+  dbg_qualify_state_i => dbg_qualify_state_verify_rd(0) -- for verfication
   );
-   
+  
     -----------------------------------------
     --  f_h adj memory
     -----------------------------------------	

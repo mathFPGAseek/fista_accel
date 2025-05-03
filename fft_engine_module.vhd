@@ -34,7 +34,9 @@ USE xil_defaultlib.all;
 
 entity fft_engine_module is
 generic(
-	     g_USE_DEBUG_i  : in natural := 1
+	     g_USE_DEBUG_i  : in natural := 1;
+	     g_USE_DEBUG_MODE_i : in natural := 0
+
 	     --g_USE_DEBUG_H_INIT_i  : in natural := 0); -- 0 = no debug , 1 = debug
 );
     port (
@@ -309,10 +311,12 @@ begin
     --U0 : entity work.fft_inbound_st_machine_controller
     U0 : entity xil_defaultlib.fft_inbound_st_machine_controller
 
-    --GENERIC MAP (
+    GENERIC MAP (
     --g_USE_DEBUG_H_INIT_i  =>  g_USE_DEBUG_H_INIT_i) -- 0 = no debug , 1 = debug
+    g_USE_DEBUG_MODE_i  => g_USE_DEBUG_MODE_i
 	  --   
-    --)            
+    --) 
+    )           
     PORT MAP(                                
     	                                   
     	  clk_i                  => clk_i,        -- : in std_logic; --clk_i,

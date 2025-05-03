@@ -27,7 +27,10 @@ LIBRARY ieee;
 USE ieee.std_logic_1164.ALL;
 USE ieee.numeric_std.ALL;
 
-entity h_hstar_inbound_state_machine_controller is            
+entity h_hstar_inbound_state_machine_controller is
+	  generic(
+	  	g_USE_DEBUG_MODE_i : in natural:= 0
+	  );            
     port(                                
     	                                   
     	  clk_i               : in std_logic;                      -- : in std_logic; --clk_i,

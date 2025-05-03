@@ -34,8 +34,11 @@ USE xil_defaultlib.all;
 
 
 entity h_h_star_mult_eng is
---generic(
+  generic(
 --	     g_USE_DEBUG_i  : in natural := 1);
+         g_USE_DEBUG_MODE_i : in natural:= 0
+         );
+         
     port (
    
     clk_i                             : in std_logic;
@@ -136,7 +139,10 @@ begin
     -- H H_star St mach contoller
     -----------------------------------------	 
     U0 : entity xil_defaultlib.h_hstar_inbound_state_machine_controller 
-    --U0 : entity work.h_hstar_inbound_state_machine_controller            
+    --U0 : entity work.h_hstar_inbound_state_machine_controller 
+    GENERIC MAP(
+    	   g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i
+    )           
            
     PORT MAP(                                
     	                                   
