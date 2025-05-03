@@ -364,29 +364,8 @@ begin
     to_fft_valid_o                =>   to_fft_valid_int, --: out std_logic;
     fista_accel_valid_o           =>   fista_accel_valid_int --: out std_logic;
                                 
-    );                          
-                             
-    -----------------------------------------
-    --  master_controller
-    -----------------------------------------	
-
+    ); 
     
-    u5 : entity work.master_st_machine_controller  
-    GENERIC MAP(
-    	          g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i -- 0 = no debug , 1 = debug
-	
-    )       
-    PORT MAP(                                
-    	                                   
-    	  clk_i                  => clk_i,--: in std_logic; --clk_i, --: in std_logic;
-        rst_i               	 => rst_i,--: in std_logic; --rst_i, --: in std_logic;
-                                
-        turnaround_i           => turnaround_int,--: in std_logic_vector(4 downto 0);                                                                                        
-                               
-        master_mode_o          => master_mode_int--: out std_logic_vector( 4 downto 0)
-                                       
-    );                              
-
     -----------------------------------------
     --  fft engine
     -----------------------------------------
@@ -420,6 +399,87 @@ begin
     
     fft_rdy_o                  =>    fft_rdy_int                                 
     );
+                             
+   
+    
+    -----------------------------------------
+    --  mem_in_buffer
+    -----------------------------------------.	
+    u4 : entity work.mem_in_buffer_module
+    GENERIC MAP(
+	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
+	      --debug_state_i  =>  ZERO
+	  g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i -- 0 = no debug , 1 = debug
+
+	  ) -- 0 = no debug , 1 = debug 
+    PORT MAP( 
+    clk_i                     =>     clk_i,             --: in STD_LOGIC;
+    rst_i               	    =>     rst_i,--: in std_logic;
+    --ena                       =>     dual_port_wr_int(0),  --: in STD_LOGIC;
+    --wea                       =>     dual_port_wr_int,--: in STD_LOGIC_VECTOR ( 0 to 0 );
+    --addra                     =>     dual_port_addr_int(7 downto 0),--: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    --dina                      =>     dual_port_data_int,--: in STD_LOGIC_VECTOR ( 79 downto 0 );
+    
+    ena                       =>     ena_to_buffer,  --: in STD_LOGIC;
+    wea                       =>     wea_to_buffer,--: in STD_LOGIC_VECTOR ( 0 to 0 );
+    addra                     =>     addr_to_buffer,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    dina                      =>     data_to_buffer,--: in STD_LOGIC_VECTOR ( 79 downto 0 );
+   
+    clkb                      =>     clk_i,--: in STD_LOGIC;
+    enb                       =>     dbg_mem_shared_in_enb_int,--: in STD_LOGIC;
+    addrb                     =>     dbg_mem_shared_in_addb_int,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
+    doutb                     =>     data_to_mem_intf_fr_mem_in_buffer--: out STD_LOGIC_VECTOR ( 79 downto 0 )
+  );
+                            
+    -----------------------------------------
+    --  master_controller
+    -----------------------------------------	
+
+    
+    u5 : entity work.master_st_machine_controller  
+    GENERIC MAP(
+    	          g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i -- 0 = no debug , 1 = debug
+	
+    )       
+    PORT MAP(                                
+    	                                   
+    	  clk_i                  => clk_i,--: in std_logic; --clk_i, --: in std_logic;
+        rst_i               	 => rst_i,--: in std_logic; --rst_i, --: in std_logic;
+                                
+        turnaround_i           => turnaround_int,--: in std_logic_vector(4 downto 0);                                                                                        
+                               
+        master_mode_o          => master_mode_int--: out std_logic_vector( 4 downto 0)
+                                       
+    ); 
+    
+     
+    -----------------------------------------
+    -- Transpose mem_intf
+    -----------------------------------------	
+  sram_wr_en_vec_int(0) <= sram_wr_en_int;
+
+  	  	
+  u6 : entity work.mem_transpose_module
+  GENERIC MAP(
+	    	debug_capture_file_i => ONE_INTEGER,           -- capture file
+	      debug_state_i  =>  ZERO_INTEGER,               -- no writeback to transpose memory
+	      g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i       -- debug state
+	) 
+ 
+  PORT MAP ( 
+  clk_i => clk_i,
+  rst_i => rst_i,                                        --clka : in STD_LOGIC;
+  master_mode_i =>   master_mode_int,                    --: in std_logic_vector(4 downto 0);
+  ena   => sram_en_int,                                  --ena : in STD_LOGIC;
+  wea   => sram_wr_en_vec_int,                           --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
+  addra => sram_addr_int,                                --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
+  dina  => data_to_mem_intf_fr_mem_in_buffer,            --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
+  douta => data_fr_mem_intf_to_gen_proc,                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
+  vouta => valid_fr_mem_intf_to_gen_proc,
+  dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
+  );
+                               
+
     
     -----------------------------------------
     -- general procesor engine  (back_end)
@@ -471,63 +531,8 @@ begin
                                    
     );
 
-    
-    -----------------------------------------
-    --  mem_in_buffer
-    -----------------------------------------.	
-    u4 : entity work.mem_in_buffer_module
-    GENERIC MAP(
-	    --g_USE_DEBUG_i  =>  ONE) -- 0 = no debug , 1 = debug
-	      --debug_state_i  =>  ZERO
-	  g_USE_DEBUG_MODE_i  =>  g_USE_DEBUG_MODE_i -- 0 = no debug , 1 = debug
-
-	  ) -- 0 = no debug , 1 = debug 
-    PORT MAP( 
-    clk_i                     =>     clk_i,             --: in STD_LOGIC;
-    rst_i               	    =>     rst_i,--: in std_logic;
-    --ena                       =>     dual_port_wr_int(0),  --: in STD_LOGIC;
-    --wea                       =>     dual_port_wr_int,--: in STD_LOGIC_VECTOR ( 0 to 0 );
-    --addra                     =>     dual_port_addr_int(7 downto 0),--: in STD_LOGIC_VECTOR ( 7 downto 0 );
-    --dina                      =>     dual_port_data_int,--: in STD_LOGIC_VECTOR ( 79 downto 0 );
-    
-    ena                       =>     ena_to_buffer,  --: in STD_LOGIC;
-    wea                       =>     wea_to_buffer,--: in STD_LOGIC_VECTOR ( 0 to 0 );
-    addra                     =>     addr_to_buffer,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
-    dina                      =>     data_to_buffer,--: in STD_LOGIC_VECTOR ( 79 downto 0 );
-   
-    clkb                      =>     clk_i,--: in STD_LOGIC;
-    enb                       =>     dbg_mem_shared_in_enb_int,--: in STD_LOGIC;
-    addrb                     =>     dbg_mem_shared_in_addb_int,--: in STD_LOGIC_VECTOR ( 7 downto 0 );
-    doutb                     =>     data_to_mem_intf_fr_mem_in_buffer--: out STD_LOGIC_VECTOR ( 79 downto 0 )
-  );
-    
-    -----------------------------------------
-    -- Transpose mem_intf
-    -----------------------------------------	
-  sram_wr_en_vec_int(0) <= sram_wr_en_int;
-
-  	  	
-  u6 : entity work.mem_transpose_module
-  GENERIC MAP(
-	    	debug_capture_file_i => ONE_INTEGER,           -- capture file
-	      debug_state_i  =>  ZERO_INTEGER,               -- no writeback to transpose memory
-	      g_USE_DEBUG_MODE_i => g_USE_DEBUG_MODE_i       -- debug state
-	) 
- 
-  PORT MAP ( 
-  clk_i => clk_i,
-  rst_i => rst_i,                                        --clka : in STD_LOGIC;
-  master_mode_i =>   master_mode_int,                    --: in std_logic_vector(4 downto 0);
-  ena   => sram_en_int,                                  --ena : in STD_LOGIC;
-  wea   => sram_wr_en_vec_int,                           --wea : in STD_LOGIC_VECTOR ( 0 to 0 );
-  addra => sram_addr_int,                                --addra : in STD_LOGIC_VECTOR ( 15 downto 0 );
-  dina  => data_to_mem_intf_fr_mem_in_buffer,            --dina : in STD_LOGIC_VECTOR ( 79 downto 0 );
-  douta => data_fr_mem_intf_to_gen_proc,                 --douta : out STD_LOGIC_VECTOR ( 79 downto 0 )
-  vouta => valid_fr_mem_intf_to_gen_proc,
-  dbg_qualify_state_i => dbg_qualify_state_verify_rd(0)
-  );
   
-     
+  
     -----------------------------------------
     -- Muxes, ena,wea,addr, and data to buffer
     -----------------------------------------	
